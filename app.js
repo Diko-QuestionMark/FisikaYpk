@@ -23,9 +23,10 @@ function fmt(t) { return String(t || '').split(/```/).map((b, i) => i % 2 ? `<pr
 function yt(u) { const m = String(u || '').match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe>` : '' }
 const TIPE = { native: 'Kuis di website', quizizz: 'Quizizz', gform: 'Google Form' };
 /* Header & footer sama di semua halaman agar tampilan konsisten */
-function shell(active, nav) {
+function shell(active, nav = []) {
     const d = Store.get().site;
-    document.body.insertAdjacentHTML('afterbegin', `<header class="top"><div class="wrap"><a class="brand" href="${nav[0][1]}"><div class="logo">⚛</div><span>${esc(d.nama)}</span></a><nav>${nav.map(n => `<a href="${n[1]}" class="${n[2] === active ? 'on' : ''}">${n[0]}</a>`).join('')}</nav></div></header>`);
+    const homeHref = (nav[0] && nav[0][1]) || 'index.html';
+    document.body.insertAdjacentHTML('afterbegin', `<header class="top"><div class="wrap"><a class="brand" href="${homeHref}"><img class="logo" src="YPKLOGO.png" alt="Logo ${esc(d.nama)}"><span>${esc(d.nama)}</span></a>${nav.length ? `<nav>${nav.map(n => `<a href="${n[1]}" class="${n[2] === active ? 'on' : ''}">${n[0]}</a>`).join('')}</nav>` : ''}</div></header>`);
     document.title = d.nama;
 }
 function footer() { const d = Store.get().site; document.body.insertAdjacentHTML('beforeend', `<footer><div class="wrap">© ${new Date().getFullYear()} ${esc(d.footer)}</div></footer>`) }
