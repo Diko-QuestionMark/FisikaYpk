@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main><div class="wrap" id="app"></div></main>
+    <script src="app.js"></script>
+    <script>
+      shell(null, [
+        ["Home", "#home", "home"],
+        ["Materi", "#materi", "materi"],
+        ["Quiz", "#quiz", "quiz"],
+      ]);
+      const app = document.getElementById("app");
+      let D, run;
+      function setNav(k) {
+        document
+          .querySelectorAll("nav a")
+          .forEach((a) =>
+            a.classList.toggle("on", a.getAttribute("href") === "#" + k),
+          );
+      }
+      function route() {
+        D = Store.get();
+        const [k = "home", id] = location.hash.slice(1).split("/");
+        setNav(k);
+        scrollTo(0, 0);
+        (({ home, materi, quiz })[k] || home)(id);
+      }
+      function wrapMain() {
+        const m = document.querySelector("main");
+        m.style.padding = "";
+        m.innerHTML = '<div class="wrap" id="app"></div>';
+        return document.getElementById("app");
+      }
+      function cards(l, t) {
+        if (!l.length)
+          return `<div class="empty">Belum ada konten. Tambahkan lewat halaman admin.</div>`;
+        return `<div class="grid">${l
+          .map((x) =>
+            t === "m"
+              ? `<div class="card"><span class="tag">${esc(x.kategori)}</span><h3>${esc(x.judul)}</h3><p>${esc(x.ringkasan)}</p><a class="btn sm" href="#materi/${x.id}" style="align-self:flex-start">Baca materi</a></div>`
+              : `<div class="card"><span class="tag q">${TIPE[x.tipe]}</span><h3>${esc(x.judul)}</h3><p>${esc(x.deskripsi)}</p>${x.tipe === "native" ? `<a class="btn sm" href="#quiz/${x.id}" style="align-self:flex-start">Kerjakan (${x.soal.length} soal)</a>` : `<a class="btn sm" target="_blank" rel="noopener" href="${esc(x.link)}" style="align-self:flex-start">Buka ${TIPE[x.tipe]}</a>`}</div>`,
+          )
+          .join("")}</div>`;
+      }
+      function materi(id) {
+        const a = wrapMain();
+        const m = D.materi.find((x) => x.id === id);
+        if (m) {
+          a.innerHTML = `<a class="back" href="#materi">← Semua materi</a><article class="read"><span class="tag">${esc(m.kategori)}</span><h1>${esc(m.judul)}</h1>${yt(m.video)}${fmt(m.isi)}</article>`;
+          return;
+        }
+        a.innerHTML = `<h2>Materi</h2><p class="sub">Pilih topik yang ingin kamu pelajari.</p>${cards(D.materi, "m")}`;
+      }
+      function quiz(id) {
+        const a = wrapMain();
+        const q = D.quiz.find((x) => x.id === id && x.tipe === "native");
+        if (!q) {
+          a.innerHTML = `<h2>Quiz</h2><p class="sub">Pilih kuis. Guru bisa menautkan Quizizz atau Google Form.</p>${cards(D.quiz, "q")}`;
+          return;
+        }
+        run = { q, i: 0, ans: [], lock: false };
+        step();
+      }
+      function step() {
+        const a = document.getElementById("app"),
+          { q, i } = run;
+        if (i >= q.soal.length) {
+          const s = run.ans.filter((v, k) => v === q.soal[k].a).length;
+          a.innerHTML = `<div class="qbox"><h2>${esc(q.judul)} selesai</h2><div class="score">${Math.round((s / q.soal.length) * 100)}</div><p class="sub">Benar ${s} dari ${q.soal.length} soal.</p><div class="row"><button class="btn" onclick="quiz('${q.id}')">Ulangi</button><a class="btn ghost" href="#quiz">Kuis lain</a></div></div>`;
+          return;
+        }
+        const s = q.soal[i];
+        a.innerHTML = `<a class="back" href="#quiz">← Semua kuis</a><div class="qbox"><div class="bar"><i style="width:${(i / q.soal.length) * 100}%"></i></div><p class="sub">Soal ${i + 1} dari ${q.soal.length}</p><h3>${esc(s.q)}</h3>${s.o.map((o, k) => `<button class="opt" data-k="${k}">${"ABCD"[k]}. ${esc(o)}</button>`).join("")}<div id="fb"></div></div>`;
+        a.querySelectorAll(".opt").forEach(
+          (b) =>
+            (b.onclick = () => {
+              if (run.lock) return;
+              run.lock = true;
+              const k = +b.dataset.k;
+              run.ans[i] = k;
+              a.querySelectorAll(".opt").forEach((x, j) => {
+                x.disabled = true;
+                if (j === s.a) x.classList.add("ok");
+              });
+              if (k !== s.a) b.classList.add("bad");
+              document.getElementById("fb").innerHTML =
+                `${s.e ? `<div class="exp"><b>${k === s.a ? "Benar." : "Kurang tepat."}</b> ${esc(s.e)}</div>` : ""}<button class="btn" style="margin-top:16px" id="nx">${i + 1 < q.soal.length ? "Soal berikutnya" : "Lihat hasil"}</button>`;
+              document.getElementById("nx").onclick = () => {
+                run.i++;
+                run.lock = false;
+                step();
+              };
+            }),
+        );
+      }
+      /* home() menulis ulang <main>; pastikan struktur utama kembali ke normal */
+      function home() {
+        const m = document.querySelector("main");
+        m.style.padding = "0";
+        m.innerHTML = `<section class="hero"><div class="wrap"><h1>${esc(D.site.tagline)}</h1><p>${esc(D.site.deskripsi)}</p><a class="btn" href="#materi">Mulai belajar</a></div></section><div class="wrap" style="padding:40px 20px"><h2>Materi terbaru</h2><p class="sub">Lanjutkan dari topik berikut.</p>${cards(D.materi.slice(-3).reverse(), "m")}</div>`;
+      }
+      addEventListener("hashchange", route);
+      route();
+      footer();
+    </script>
+  </body>
+</html>

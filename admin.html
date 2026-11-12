@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main><div class="wrap" style="max-width: 820px" id="app"></div></main>
+    <div class="toast" id="toast"></div>
+    <script src="app.js"></script>
+    <script>
+      shell(null, [
+        ["Admin", "#", "a"],
+        ["Lihat website", "index.html", "x"],
+      ]);
+      let D = Store.get(),
+        tab = "materi",
+        edit = null;
+      const $ = (s) => document.querySelector(s);
+      const toast = (m) => {
+        const t = $("#toast");
+        t.textContent = m;
+        t.classList.add("on");
+        setTimeout(() => t.classList.remove("on"), 1800);
+      };
+      const save = () => {
+        Store.save(D);
+        toast("Tersimpan");
+      };
+      function draw() {
+        $("#app").innerHTML =
+          `<h2>Halaman admin</h2><p class="sub">Isi materi dan kuis di sini. Data tersimpan di browser ini (penyimpanan lokal).</p>
+ <div class="row" style="margin-bottom:18px">${[
+   ["materi", "Materi"],
+   ["quiz", "Quiz"],
+   ["site", "Pengaturan"],
+   ["data", "Cadangan data"],
+ ]
+   .map(
+     (t) =>
+       `<button class="btn sm ${tab === t[0] ? "" : "ghost"}" onclick="tab='${t[0]}';edit=null;draw()">${t[1]}</button>`,
+   )
+   .join(
+     "",
+   )}</div>${{ materi: pMateri, quiz: pQuiz, site: pSite, data: pData }[tab]()}`;
+      }
+      function list(arr, type, sub) {
+        return `<div class="panel"><div class="row" style="justify-content:space-between"><b>Daftar (${arr.length})</b><button class="btn sm" onclick="edit='new';draw()">+ Tambah</button></div>${arr.map((x) => `<div class="item"><div><b>${esc(x.judul)}</b><div class="hint">${esc(sub(x))}</div></div><div class="row"><button class="btn sm ghost" onclick="edit='${x.id}';draw()">Ubah</button><button class="btn sm del" onclick="del('${type}','${x.id}')">Hapus</button></div></div>`).join("") || '<div class="empty">Belum ada data.</div>'}</div>`;
+      }
+      function del(t, id) {
+        if (confirm("Hapus item ini?")) {
+          D[t] = D[t].filter((x) => x.id !== id);
+          save();
+          draw();
+        }
+      }
+      function pMateri() {
+        if (!edit) return list(D.materi, "materi", (x) => x.kategori);
+        const m = D.materi.find((x) => x.id === edit) || {
+          judul: "",
+          kategori: "",
+          ringkasan: "",
+          video: "",
+          isi: "",
+        };
+        return `<div class="panel"><b>${m.id ? "Ubah" : "Tambah"} materi</b>
+ <label>Judul</label><input id="j" value="${esc(m.judul)}"><label>Kategori / bab</label><input id="k" value="${esc(m.kategori)}" placeholder="Contoh: Kinematika">
+ <label>Ringkasan singkat</label><input id="r" value="${esc(m.ringkasan)}"><label>Link video YouTube (opsional)</label><input id="v" value="${esc(m.video)}">
+ <label>Isi materi</label><textarea id="i" style="min-height:260px">${esc(m.isi)}</textarea>
+ <div class="hint">Format: awali baris dengan <code>## </code> untuk subjudul. Apit rumus dengan tiga tanda kutip terbalik (\`\`\`). Pisahkan paragraf dengan baris kosong.</div>
+ <div class="row" style="margin-top:18px"><button class="btn" onclick="sM('${m.id || ""}')">Simpan</button><button class="btn ghost" onclick="edit=null;draw()">Batal</button></div></div>`;
+      }
+      function sM(id) {
+        const o = {
+          id: id || Store.uid("m"),
+          judul: $("#j").value.trim(),
+          kategori: $("#k").value.trim() || "Umum",
+          ringkasan: $("#r").value.trim(),
+          video: $("#v").value.trim(),
+          isi: $("#i").value,
+        };
+        if (!o.judul) return toast("Judul wajib diisi");
+        up(D.materi, o);
+        edit = null;
+        save();
+        draw();
+      }
+      function up(a, o) {
+        const i = a.findIndex((x) => x.id === o.id);
+        i < 0 ? a.push(o) : (a[i] = o);
+      }
+      let Q;
+      function pQuiz() {
+        if (!edit)
+          return list(
+            D.quiz,
+            "quiz",
+            (x) =>
+              TIPE[x.tipe] +
+              (x.tipe === "native" ? ` · ${x.soal.length} soal` : ""),
+          );
+        if (!Q || Q._for !== edit) {
+          Q = structuredClone(
+            D.quiz.find((x) => x.id === edit) || {
+              judul: "",
+              tipe: "native",
+              link: "",
+              deskripsi: "",
+              soal: [],
+            },
+          );
+          Q._for = edit;
+        }
+        return `<div class="panel"><b>${Q.id ? "Ubah" : "Tambah"} quiz</b>
+ <label>Judul</label><input id="j" value="${esc(Q.judul)}"><label>Deskripsi</label><input id="d" value="${esc(Q.deskripsi)}">
+ <label>Jenis quiz</label><select id="t" onchange="sync();draw()">${Object.entries(
+   TIPE,
+ )
+   .map(
+     ([k, v]) =>
+       `<option value="${k}" ${Q.tipe === k ? "selected" : ""}>${v}</option>`,
+   )
+   .join("")}</select>
+ ${
+   Q.tipe === "native"
+     ? `<label>Soal pilihan ganda</label>${Q.soal
+         .map(
+           (
+             s,
+             n,
+           ) => `<div class="soal"><div class="row" style="justify-content:space-between"><b>Soal ${n + 1}</b><button class="btn sm del" onclick="sync();Q.soal.splice(${n},1);draw()">Hapus</button></div>
+  <label>Pertanyaan</label><input data-n="${n}" data-f="q" value="${esc(s.q)}">${s.o.map((o, k) => `<label>Pilihan ${"ABCD"[k]}</label><input data-n="${n}" data-f="o${k}" value="${esc(o)}">`).join("")}
+  <label>Jawaban benar</label><select data-n="${n}" data-f="a">${"ABCD"
+    .split("")
+    .map(
+      (c, k) =>
+        `<option value="${k}" ${s.a === k ? "selected" : ""}>${c}</option>`,
+    )
+    .join("")}</select>
+  <label>Pembahasan (opsional)</label><input data-n="${n}" data-f="e" value="${esc(s.e || "")}"></div>`,
+         )
+         .join("")}
+  <button class="btn sm ghost" style="margin-top:14px" onclick="sync();Q.soal.push({q:'',o:['','','',''],a:0,e:''});draw()">+ Tambah soal</button>`
+     : `<label>Link ${TIPE[Q.tipe]}</label><input id="l" value="${esc(Q.link)}" placeholder="https://"><div class="hint">Siswa akan membuka link ini di tab baru.</div>`
+ }
+ <div class="row" style="margin-top:18px"><button class="btn" onclick="sQ()">Simpan</button><button class="btn ghost" onclick="edit=null;Q=null;draw()">Batal</button></div></div>`;
+      }
+      function sync() {
+        Q.judul = $("#j").value;
+        Q.deskripsi = $("#d").value;
+        Q.tipe = $("#t").value;
+        if ($("#l")) Q.link = $("#l").value;
+        document.querySelectorAll("[data-n]").forEach((e) => {
+          const s = Q.soal[+e.dataset.n],
+            f = e.dataset.f;
+          f[0] === "o"
+            ? (s.o[+f[1]] = e.value)
+            : f === "a"
+              ? (s.a = +e.value)
+              : (s[f] = e.value);
+        });
+      }
+      function sQ() {
+        sync();
+        if (!Q.judul.trim()) return toast("Judul wajib diisi");
+        if (Q.tipe !== "native" && !/^https?:\/\//.test(Q.link))
+          return toast("Link harus diawali https://");
+        if (
+          Q.tipe === "native" &&
+          (!Q.soal.length ||
+            Q.soal.some((s) => !s.q.trim() || s.o.some((o) => !o.trim())))
+        )
+          return toast("Lengkapi semua soal dan pilihan");
+        const o = { ...Q, id: Q.id || Store.uid("q") };
+        delete o._for;
+        if (o.tipe !== "native") o.soal = [];
+        up(D.quiz, o);
+        Q = null;
+        edit = null;
+        save();
+        draw();
+      }
+      function pSite() {
+        const s = D.site;
+        return `<div class="panel"><b>Pengaturan website</b>${[
+          ["nama", "Nama website"],
+          ["tagline", "Judul besar halaman Home"],
+          ["deskripsi", "Deskripsi Home"],
+          ["footer", "Teks footer"],
+        ]
+          .map(
+            ([k, l]) =>
+              `<label>${l}</label><input id="s_${k}" value="${esc(s[k])}">`,
+          )
+          .join("")}
+ <div class="row" style="margin-top:18px"><button class="btn" onclick="['nama','tagline','deskripsi','footer'].forEach(k=>D.site[k]=$('#s_'+k).value);save()">Simpan</button></div></div>`;
+      }
+      function pData() {
+        return `<div class="panel"><b>Cadangan data</b><p class="sub">Penyimpanan lokal hanya ada di browser ini. Unduh cadangan untuk memindahkan data ke komputer lain.</p>
+ <div class="row"><button class="btn" onclick="exp()">Unduh cadangan (.json)</button><label class="btn ghost" style="margin:0;cursor:pointer">Pulihkan dari file<input type="file" accept=".json" hidden onchange="imp(this.files[0])"></label><button class="btn del" onclick="if(confirm('Kembalikan ke data contoh? Semua perubahan hilang.')){Store.reset();D=Store.get();draw()}">Reset ke contoh</button></div></div>`;
+      }
+      function exp() {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(
+          new Blob([JSON.stringify(D, null, 1)], { type: "application/json" }),
+        );
+        a.download = "fisika-data.json";
+        a.click();
+      }
+      function imp(f) {
+        if (!f) return;
+        f.text().then((t) => {
+          try {
+            const j = JSON.parse(t);
+            if (!j.site || !j.materi || !j.quiz) throw 0;
+            D = j;
+            save();
+            draw();
+          } catch (e) {
+            toast("File tidak valid");
+          }
+        });
+      }
+      draw();
+    </script>
+  </body>
+</html>
