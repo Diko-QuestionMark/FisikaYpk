@@ -527,7 +527,6 @@ footer {
 .admin-content {
   padding: 28px 32px;
   flex: 1;
-  max-width: 860px;
 }
 
 /* Sidebar responsive */
@@ -622,6 +621,84 @@ textarea {
   color: var(--text-muted);
   font-size: 13px;
   margin-top: 4px;
+}
+
+/* =========================
+   PRESENSI / ABSEN BADGES
+========================= */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge.h {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge.s {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge.i {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.a {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+.status-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+
+.status-btn:hover {
+  background: var(--bg);
+}
+
+.status-btn.h.active {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+
+.status-btn.s.active {
+  background: #0284c7;
+  color: #fff;
+  border-color: #0284c7;
+}
+
+.status-btn.i.active {
+  background: #d97706;
+  color: #fff;
+  border-color: #d97706;
+}
+
+.status-btn.a.active {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
 }
 
 /* =========================

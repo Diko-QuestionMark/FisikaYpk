@@ -16,7 +16,7 @@
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
           <img class="sidebar-logo" src="YPKLOGO.png" alt="Logo">
-          <span class="sidebar-title">Admin Panel</span>
+          <span class="sidebar-title">Panel Guru</span>
         </div>
         <nav class="sidebar-nav" id="sidenav"></nav>
         <a class="sidebar-back" href="index.html">← Kembali ke website</a>
@@ -46,18 +46,22 @@
       const TABS = [
         ["materi", "📚", "Materi"],
         ["quiz", "✏️", "Quiz"],
+        ["absen", "📋", "Presensi"],
+        ["siswa", "👥", "Data Siswa"],
         ["site", "⚙️", "Pengaturan"],
-        ["data", "💾", "Cadangan data"],
       ];
       function draw() {
         $("#sidenav").innerHTML = TABS.map(
           (t) =>
             `<button class="sidebar-item${tab === t[0] ? " active" : ""}" onclick="tab='${t[0]}';edit=null;draw()"><span class="sidebar-icon">${t[1]}</span>${t[2]}</button>`,
         ).join("");
-        $("#topbar").innerHTML = `<h2>${TABS.find((t) => t[0] === tab)[2]}</h2>`;
+        const curTab = TABS.find((t) => t[0] === tab);
+        $("#topbar").innerHTML = `<h2>${curTab ? curTab[2] : "Admin"}</h2>`;
         $("#app").innerHTML = {
           materi: pMateri,
           quiz: pQuiz,
+          absen: pAbsen,
+          siswa: pSiswa,
           site: pSite,
           data: pData,
         }[tab]();
@@ -114,7 +118,7 @@
             D.quiz,
             "quiz",
             (x) =>
-              TIPE[x.tipe] +
+              (TIPE[x.tipe] || "Link eksternal") +
               (x.tipe === "native" ? ` · ${x.soal.length} soal` : ""),
           );
         if (!Q || Q._for !== edit) {
@@ -159,7 +163,7 @@
          )
          .join("")}
   <button class="btn sm ghost" style="margin-top:14px" onclick="sync();Q.soal.push({q:'',o:['','','',''],a:0,e:''});draw()">+ Tambah soal</button>`
-     : `<label>Link ${TIPE[Q.tipe]}</label><input id="l" value="${esc(Q.link)}" placeholder="https://"><div class="hint">Siswa akan membuka link ini di tab baru.</div>`
+     : `<label>Link kuis</label><input id="l" value="${esc(Q.link)}" placeholder="https://"><div class="hint">Siswa akan membuka link ini di tab baru (bisa berupa Google Form, Quizizz, dll).</div>`
  }
  <div class="row" style="margin-top:18px"><button class="btn" onclick="sQ()">Simpan</button><button class="btn ghost" onclick="edit=null;Q=null;draw()">Batal</button></div></div>`;
       }
@@ -198,6 +202,345 @@
         save();
         draw();
       }
+      const DAFTAR_KELAS = [
+        "X A",
+        "X B",
+        "X C",
+        "X D",
+        "XI A",
+        "XI B",
+        "XI C",
+        "XII A",
+        "XII B",
+        "XII C",
+      ];
+      let A, filterKelas = "Semua";
+      function pAbsen() {
+        if (!edit) {
+          const allList = D.absen || [];
+          const list = allList.filter(
+            (x) => filterKelas === "Semua" || x.kelas === filterKelas,
+          );
+          return `<div class="panel">
+            <div class="row" style="justify-content:space-between;margin-bottom:14px;align-items:center">
+              <div class="row" style="gap:10px;align-items:center">
+                <b>Daftar Sesi Presensi (${list.length})</b>
+                <select onchange="filterKelas=this.value;draw()" style="width:auto;padding:5px 10px;font-size:13px">
+                  <option value="Semua" ${filterKelas === "Semua" ? "selected" : ""}>Semua Kelas</option>
+                  ${DAFTAR_KELAS.map((k) => `<option value="${k}" ${filterKelas === k ? "selected" : ""}>${k}</option>`).join("")}
+                </select>
+              </div>
+              <button class="btn sm" onclick="edit='new';draw()">+ Buat Sesi Baru</button>
+            </div>
+            ${list.map((x) => {
+              const h = x.siswa.filter((s) => s.status === "Hadir").length;
+              const s = x.siswa.filter((s) => s.status === "Sakit").length;
+              const i = x.siswa.filter((s) => s.status === "Izin").length;
+              const a = x.siswa.filter((s) => s.status === "Alpa").length;
+              const b = x.siswa.filter((s) => !s.status).length;
+              return `<div class="item">
+                <div>
+                  <b>${esc(x.kelas)} · ${esc(x.tanggal)}</b>
+                  <div class="hint">Topik: ${esc(x.topik || "Umum")} · Total: ${x.siswa.length} siswa</div>
+                  <div class="row" style="margin-top:6px;gap:6px">
+                    <span class="badge h">Hadir: ${h}</span>
+                    <span class="badge s">Sakit: ${s}</span>
+                    <span class="badge i">Izin: ${i}</span>
+                    <span class="badge a">Alpa: ${a}</span>
+                    ${b ? `<span class="badge" style="background:var(--border);color:var(--text-muted)">Belum: ${b}</span>` : ""}
+                  </div>
+                </div>
+                <div class="row">
+                  <button class="btn sm ghost" onclick="edit='${x.id}';draw()">Buka / Ubah</button>
+                  <button class="btn sm" onclick="expExcel('${x.id}')">Unduh Excel</button>
+                  <button class="btn sm del" onclick="del('absen','${x.id}')">Hapus</button>
+                </div>
+              </div>`;
+            }).join("") || `<div class="empty">Belum ada sesi presensi ${filterKelas !== "Semua" ? "untuk kelas " + filterKelas : ""}. Klik <b>+ Buat Sesi Baru</b> untuk memulai.</div>`}
+          </div>`;
+        }
+
+        if (!A || A._for !== edit) {
+          const defaultKls = filterKelas !== "Semua" ? filterKelas : "";
+          const master = defaultKls ? (D.kelas_siswa || {})[defaultKls] || [] : [];
+          A = structuredClone(
+            (D.absen || []).find((x) => x.id === edit) || {
+              tanggal: new Date().toISOString().slice(0, 10),
+              kelas: defaultKls,
+              topik: "",
+              siswa: master.map((nama) => ({
+                nama,
+                status: "",
+                catatan: "",
+              })),
+            },
+          );
+          A._for = edit;
+        }
+
+        return `<div class="panel">
+          <b>${A.id ? "Ubah" : "Buat Sesi"} Presensi</b>
+          <div class="row" style="gap:14px;margin-top:10px">
+            <div style="flex:1;min-width:200px">
+              <label>Tanggal</label>
+              <input type="date" id="a_tgl" value="${esc(A.tanggal)}">
+            </div>
+            <div style="flex:1;min-width:200px">
+              <label>Pilih Kelas</label>
+              <select id="a_kls" onchange="onAbsenKelasChange(this.value)">
+                <option value="" ${!A.kelas ? "selected" : ""}>-- Pilih Kelas --</option>
+                ${DAFTAR_KELAS.map((k) => `<option value="${k}" ${A.kelas === k ? "selected" : ""}>${k}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+          <label>Materi / Topik Pembelajaran</label>
+          <input id="a_topik" value="${esc(A.topik)}" placeholder="Contoh: Gerak Lurus Beraturan (GLB)">
+
+          <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px">
+            <div class="row" style="justify-content:space-between;margin-bottom:12px;align-items:center">
+              <div>
+                <b>Daftar Kehadiran Siswa ${A.kelas ? "Kelas " + esc(A.kelas) + " (" + A.siswa.length + " siswa)" : ""}</b>
+                <div class="hint">Pilih status kehadiran: H (Hadir), S (Sakit), I (Izin), atau A (Alpa)</div>
+              </div>
+              ${A.siswa.length ? `<button class="btn sm ghost" type="button" onclick="syncA();setAllHadir()">Semua Hadir</button>` : ""}
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px" id="siswa_list">
+              ${
+                A.siswa.length
+                  ? A.siswa
+                      .map(
+                        (s, idx) => `
+                <div class="item" style="padding:10px 12px;gap:12px;background:var(--bg);border-radius:8px;border-bottom:none">
+                  <div style="flex:1;min-width:180px;display:flex;align-items:center;gap:10px">
+                    <span style="font-size:13px;color:var(--text-muted);font-weight:700;width:24px;text-align:right">${idx + 1}.</span>
+                    <span style="font-weight:700;font-size:14px;color:var(--text)">${esc(s.nama)}</span>
+                  </div>
+                  <div class="status-btn-group" data-idx="${idx}">
+                    <button type="button" class="status-btn h ${s.status === 'Hadir' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Hadir')">H</button>
+                    <button type="button" class="status-btn s ${s.status === 'Sakit' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Sakit')">S</button>
+                    <button type="button" class="status-btn i ${s.status === 'Izin' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Izin')">I</button>
+                    <button type="button" class="status-btn a ${s.status === 'Alpa' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Alpa')">A</button>
+                  </div>
+                  <div style="width:200px">
+                    <input data-idx="${idx}" data-field="catatan" value="${esc(s.catatan || '')}" placeholder="Keterangan / Catatan" style="padding:6px 10px;font-size:13px;background:var(--surface)">
+                  </div>
+                </div>
+              `,
+                      )
+                      .join("")
+                  : !A.kelas
+                    ? `<div class="empty" style="padding:24px">Silakan pilih kelas terlebih dahulu untuk memuat daftar siswa.</div>`
+                    : `<div class="empty" style="padding:24px">Kelas <b>${esc(A.kelas)}</b> belum memiliki data siswa.<br><span class="hint">Silakan masukkan daftar nama siswa di menu <b>👥 Data Siswa</b> terlebih dahulu.</span></div>`
+              }
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px">
+            <button class="btn" onclick="sA()">Simpan Presensi</button>
+            <button class="btn ghost" onclick="edit=null;A=null;draw()">Batal</button>
+          </div>
+        </div>`;
+      }
+      function onAbsenKelasChange(val) {
+        syncA();
+        A.kelas = val;
+        if (!val) {
+          A.siswa = [];
+        } else {
+          const master = (D.kelas_siswa || {})[val] || [];
+          A.siswa = master.map((nama) => ({
+            nama,
+            status: "",
+            catatan: "",
+          }));
+        }
+        draw();
+      }
+      function syncA() {
+        if (!A) return;
+        if ($("#a_tgl")) A.tanggal = $("#a_tgl").value;
+        if ($("#a_kls")) A.kelas = $("#a_kls").value;
+        if ($("#a_topik")) A.topik = $("#a_topik").value;
+        document.querySelectorAll("#siswa_list input[data-field='catatan']").forEach((inp) => {
+          const idx = +inp.dataset.idx;
+          if (A.siswa[idx]) A.siswa[idx].catatan = inp.value;
+        });
+      }
+      function setSiswaStatus(idx, status) {
+        syncA();
+        if (A.siswa[idx]) {
+          A.siswa[idx].status = A.siswa[idx].status === status ? "" : status;
+          draw();
+        }
+      }
+      function setAllHadir() {
+        A.siswa.forEach((s) => (s.status = "Hadir"));
+        draw();
+      }
+      function sA() {
+        syncA();
+        if (!A.tanggal) return toast("Tanggal wajib diisi");
+        if (!A.kelas.trim()) return toast("Kelas wajib diisi");
+        if (!A.siswa.length)
+          return toast("Belum ada data siswa di kelas ini. Masukkan di menu Data Siswa.");
+        const o = { ...A, id: A.id || Store.uid("a") };
+        delete o._for;
+        D.absen = D.absen || [];
+        up(D.absen, o);
+        A = null;
+        edit = null;
+        save();
+        draw();
+      }
+      function expExcel(id) {
+        const s = (D.absen || []).find((x) => x.id === id);
+        if (!s) return;
+        const h = s.siswa.filter((x) => x.status === "Hadir").length;
+        const sk = s.siswa.filter((x) => x.status === "Sakit").length;
+        const i = s.siswa.filter((x) => x.status === "Izin").length;
+        const a = s.siswa.filter((x) => x.status === "Alpa").length;
+        const b = s.siswa.filter((x) => !x.status).length;
+
+        const html = `
+          <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+          <head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Presensi</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, sans-serif; }
+            th, td { border: 1px solid #b0b0b0; padding: 6px 12px; font-size: 11pt; }
+            th { background-color: #0891b2; color: #ffffff; font-weight: bold; text-align: center; }
+            .center { text-align: center; }
+            .hadir { background-color: #dcfce7; color: #15803d; font-weight: bold; text-align: center; }
+            .sakit { background-color: #e0f2fe; color: #0369a1; font-weight: bold; text-align: center; }
+            .izin { background-color: #fef3c7; color: #92400e; font-weight: bold; text-align: center; }
+            .alpa { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; }
+            .title { font-size: 14pt; font-weight: bold; color: #083344; }
+            .meta { background-color: #f8fafc; font-weight: bold; }
+          </style>
+          </head>
+          <body>
+            <table>
+              <tr><td colspan="4" class="title">REKAPITULASI PRESENSI - KELAS ${esc(s.kelas)}</td></tr>
+              <tr><td class="meta">Tanggal</td><td colspan="3">${esc(s.tanggal)}</td></tr>
+              <tr><td class="meta">Materi / Topik</td><td colspan="3">${esc(s.topik || "-")}</td></tr>
+              <tr><td class="meta">Ringkasan Kehadiran</td><td colspan="3">Total Siswa: ${s.siswa.length} | Hadir: ${h} | Sakit: ${sk} | Izin: ${i} | Alpa: ${a}${b ? " | Belum Dipilih: " + b : ""}</td></tr>
+              <tr><td colspan="4"></td></tr>
+              <tr>
+                <th style="width:50px">No</th>
+                <th style="width:260px">Nama Siswa</th>
+                <th style="width:140px">Status Kehadiran</th>
+                <th style="width:220px">Keterangan / Catatan</th>
+              </tr>
+              ${s.siswa
+                .map((item, idx) => {
+                  const stClass =
+                    item.status === "Hadir"
+                      ? "hadir"
+                      : item.status === "Sakit"
+                        ? "sakit"
+                        : item.status === "Izin"
+                          ? "izin"
+                          : item.status === "Alpa"
+                            ? "alpa"
+                            : "center";
+                  return `<tr>
+                  <td class="center">${idx + 1}</td>
+                  <td>${esc(item.nama)}</td>
+                  <td class="${stClass}">${esc(item.status || "-")}</td>
+                  <td>${esc(item.catatan || "")}</td>
+                </tr>`;
+                })
+                .join("")}
+            </table>
+          </body>
+          </html>
+        `;
+
+        const blob = new Blob([html], {
+          type: "application/vnd.ms-excel;charset=utf-8",
+        });
+        const elem = document.createElement("a");
+        elem.href = URL.createObjectURL(blob);
+        const cleanKls = (s.kelas || "Kelas").replace(/\s+/g, "_");
+        elem.download = `Presensi_${cleanKls}_${s.tanggal}.xls`;
+        elem.click();
+      }
+      let curMasterKls = DAFTAR_KELAS[0],
+        editMaster = false;
+      function pSiswa() {
+        D.kelas_siswa = D.kelas_siswa || {};
+        const list = D.kelas_siswa[curMasterKls] || [];
+
+        if (editMaster) {
+          return `<div class="panel">
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+              <b>Ubah / Tempel Daftar Siswa: Kelas ${curMasterKls}</b>
+              <span class="hint">Copy-paste dari Excel atau ketik satu nama per baris</span>
+            </div>
+            <textarea id="master_text" style="min-height:280px;font-family:inherit;line-height:1.6" placeholder="Budi Santoso&#10;Citra Dewi&#10;Dedi Pratama">${esc(list.join("\n"))}</textarea>
+            <div class="row" style="margin-top:14px">
+              <button class="btn" onclick="saveMasterSiswa()">Simpan Daftar Siswa</button>
+              <button class="btn ghost" onclick="editMaster=false;draw()">Batal</button>
+            </div>
+          </div>`;
+        }
+
+        return `<div class="panel">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div class="row" style="gap:10px;align-items:center">
+              <b>Pilih Kelas:</b>
+              <select onchange="curMasterKls=this.value;draw()" style="width:auto;padding:6px 12px;font-weight:700">
+                ${DAFTAR_KELAS.map(
+                  (k) =>
+                    `<option value="${k}" ${curMasterKls === k ? "selected" : ""}>${k} (${((D.kelas_siswa || {})[k] || []).length} siswa)</option>`,
+                ).join("")}
+              </select>
+            </div>
+            <button class="btn sm" onclick="editMaster=true;draw()">Edit</button>
+          </div>
+
+          <div style="background:var(--bg);border-radius:10px;padding:16px">
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+              <b>Daftar Siswa Tetap: Kelas ${curMasterKls} (${list.length} Siswa)</b>
+              ${list.length ? `<button class="btn sm del" onclick="if(confirm('Hapus semua siswa di kelas ${curMasterKls}?')){D.kelas_siswa[curMasterKls]=[];save();draw()}">Kosongkan Kelas</button>` : ""}
+            </div>
+            ${
+              list.length
+                ? `<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+                ${list
+                  .map(
+                    (nama, idx) => `
+                  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+                    <span style="font-size:12px;color:var(--text-muted);font-weight:700;width:20px">${idx + 1}.</span>
+                    <span style="font-weight:600;font-size:14px">${esc(nama)}</span>
+                  </div>
+                `,
+                  )
+                  .join("")}
+              </div>`
+                : `<div class="empty" style="background:var(--surface);padding:30px">
+              Belum ada data siswa untuk kelas <b>${curMasterKls}</b>.<br>
+              Klik tombol <b>Edit</b> di atas untuk memasukkan nama-nama siswa sekaligus.
+            </div>`
+            }
+          </div>
+        </div>`;
+      }
+      function saveMasterSiswa() {
+        const raw = $("#master_text").value;
+        const lines = raw
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+        D.kelas_siswa = D.kelas_siswa || {};
+        D.kelas_siswa[curMasterKls] = lines;
+        editMaster = false;
+        save();
+        toast(
+          `Data siswa kelas ${curMasterKls} tersimpan (${lines.length} siswa)`,
+        );
+        draw();
+      }
       function pSite() {
         const s = D.site;
         return `<div class="panel"><b>Pengaturan website</b>${[
@@ -231,6 +574,8 @@
           try {
             const j = JSON.parse(t);
             if (!j.site || !j.materi || !j.quiz) throw 0;
+            j.absen = j.absen || [];
+            j.kelas_siswa = j.kelas_siswa || {};
             D = j;
             save();
             draw();

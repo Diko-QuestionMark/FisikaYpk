@@ -32,9 +32,10 @@
       function route() {
         D = Store.get();
         const [k = "home", id] = location.hash.slice(1).split("/");
-        setNav(k);
+        const page = k || "home";
+        setNav(page);
         scrollTo(0, 0);
-        (({ home, materi, quiz })[k] || home)(id);
+        (({ home, materi, quiz })[page] || home)(id);
       }
       function wrapMain() {
         const m = document.querySelector("main");
@@ -49,7 +50,7 @@
           .map((x) =>
             t === "m"
               ? `<div class="card"><span class="tag">${esc(x.kategori)}</span><h3>${esc(x.judul)}</h3><p>${esc(x.ringkasan)}</p><a class="btn sm" href="#materi/${x.id}" style="align-self:flex-start">Baca materi</a></div>`
-              : `<div class="card"><span class="tag q">${TIPE[x.tipe]}</span><h3>${esc(x.judul)}</h3><p>${esc(x.deskripsi)}</p>${x.tipe === "native" ? `<a class="btn sm" href="#quiz/${x.id}" style="align-self:flex-start">Kerjakan (${x.soal.length} soal)</a>` : `<a class="btn sm" target="_blank" rel="noopener" href="${esc(x.link)}" style="align-self:flex-start">Buka ${TIPE[x.tipe]}</a>`}</div>`,
+              : `<div class="card"><span class="tag q">${TIPE[x.tipe] || "Link eksternal"}</span><h3>${esc(x.judul)}</h3><p>${esc(x.deskripsi)}</p>${x.tipe === "native" ? `<a class="btn sm" href="#quiz/${x.id}" style="align-self:flex-start">Kerjakan (${x.soal.length} soal)</a>` : `<a class="btn sm" target="_blank" rel="noopener" href="${esc(x.link)}" style="align-self:flex-start">Buka kuis</a>`}</div>`,
           )
           .join("")}</div>`;
       }

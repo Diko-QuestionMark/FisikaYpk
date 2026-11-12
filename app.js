@@ -9,10 +9,43 @@ const SEED = {
             { q: 'Pada GLB, percepatan benda adalah…', o: ['Konstan tidak nol', 'Nol', 'Bertambah', 'Berkurang'], a: 1, e: 'Kecepatan tetap berarti percepatan nol.' },
             { q: 'Mobil melaju 20 m/s selama 5 s. Jarak tempuhnya…', o: ['4 m', '25 m', '100 m', '200 m'], a: 2, e: 's = v × t = 20 × 5 = 100 m.' }]
     },
-    { id: 'q2', judul: 'Latihan Hukum Newton (Quizizz)', tipe: 'quizizz', link: 'https://quizizz.com', deskripsi: 'Kerjakan di Quizizz.', soal: [] }]
+    { id: 'q2', judul: 'Latihan Hukum Newton (Quizizz)', tipe: 'link', link: 'https://quizizz.com', deskripsi: 'Kerjakan di Quizizz.', soal: [] }],
+    absen: [
+        {
+            id: 'a1',
+            tanggal: new Date().toISOString().slice(0, 10),
+            kelas: 'X A',
+            topik: 'Gerak Lurus Beraturan (GLB)',
+            siswa: [
+                { nama: 'Budi Santoso', status: 'Hadir', catatan: '' },
+                { nama: 'Citra Dewi', status: 'Hadir', catatan: '' },
+                { nama: 'Dedi Pratama', status: 'Sakit', catatan: 'Demam' },
+                { nama: 'Eka Putri', status: 'Izin', catatan: 'Lomba' }
+            ]
+        }
+    ],
+    kelas_siswa: {
+        'X A': [
+            'Aditia Pratama', 'Budi Santoso', 'Citra Dewi', 'Dedi Pratama', 'Eka Putri', 'Fajar Ramadhan'
+        ],
+        'X B': [
+            'Anisa Rahma', 'Bagas Wijaya', 'Dimas Anggara', 'Gita Gutawa', 'Hendra Setiawan'
+        ]
+    }
 };
 const Store = {
-    get() { try { return JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED) } catch (e) { return structuredClone(SEED) } },
+    get() {
+        try {
+            const d = JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED);
+            d.materi = d.materi || [];
+            d.quiz = d.quiz || [];
+            d.absen = d.absen || [];
+            d.kelas_siswa = d.kelas_siswa || {};
+            return d;
+        } catch (e) {
+            return structuredClone(SEED);
+        }
+    },
     save(d) { localStorage.setItem(KEY, JSON.stringify(d)) },
     reset() { localStorage.removeItem(KEY) },
     uid(p) { return p + Date.now().toString(36) }
@@ -21,7 +54,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 /* Format materi: "## Judul", blok ``` rumus ```, paragraf dipisah baris kosong */
 function fmt(t) { return String(t || '').split(/```/).map((b, i) => i % 2 ? `<pre>${esc(b.trim())}</pre>` : b.split(/\n\s*\n/).map(p => { p = p.trim(); if (!p) return ''; return p.split('\n').map(l => l.startsWith('## ') ? `<h3>${esc(l.slice(3))}</h3>` : `<p>${esc(l)}</p>`).join('') }).join('')).join('') }
 function yt(u) { const m = String(u || '').match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe>` : '' }
-const TIPE = { native: 'Kuis di website', quizizz: 'Quizizz', gform: 'Google Form' };
+const TIPE = { native: 'Kuis di website', link: 'Link eksternal' };
 /* Header & footer sama di semua halaman agar tampilan konsisten */
 function shell(active, nav = []) {
     const d = Store.get().site;
