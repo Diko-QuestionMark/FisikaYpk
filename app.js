@@ -1,7 +1,7 @@
 /* Penyimpanan & utilitas bersama (dipakai index.html dan admin.html) */
 const KEY = 'fisika_media_v3';
 const SEED = {
-    site: { nama: 'FisikaKu', tagline: 'Belajar fisika jadi lebih mudah, runtut, dan menyenangkan.', deskripsi: 'Media pembelajaran fisika interaktif: baca materi, lalu uji pemahamanmu lewat kuis.', footer: 'Media Pembelajaran Fisika' },
+    site: { nama: 'FisikaKu', tagline: 'Belajar fisika jadi lebih mudah, runtut, dan menyenangkan.', deskripsi: 'Media pembelajaran fisika interaktif: baca materi, lalu uji pemahamanmu lewat kuis.', footer: 'Media Pembelajaran Fisika', pin: 'FahrulPolman' },
     daftar_kelas: [],
     materi: [],
     quiz: [],
@@ -12,6 +12,8 @@ const Store = {
     get() {
         try {
             const d = JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED);
+            d.site = d.site || {};
+            d.site.pin = d.site.pin || 'FahrulPolman';
             d.materi = d.materi || [];
             d.quiz = d.quiz || [];
             d.absen = d.absen || [];
@@ -56,3 +58,18 @@ function shell(active, nav = []) {
     document.title = d.nama;
 }
 function footer() { const d = Store.get().site; document.body.insertAdjacentHTML('beforeend', `<footer><div class="wrap">© ${new Date().getFullYear()} ${esc(d.footer)}</div></footer>`) }
+/* Akses rahasia ke panel admin via triple-click logo sekolah */
+let _lc = 0, _lt;
+document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t && (t.classList.contains('logo') || (t.closest && t.closest('.brand .logo')))) {
+        _lc++;
+        clearTimeout(_lt);
+        if (_lc >= 5) {
+            _lc = 0;
+            location.href = 'admin.html';
+        } else {
+            _lt = setTimeout(() => { _lc = 0; }, 500);
+        }
+    }
+});

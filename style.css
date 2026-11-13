@@ -552,6 +552,14 @@ footer {
   .admin-topbar {
     padding: 14px 16px;
   }
+
+  .mobile-toggle {
+    display: inline-flex !important;
+  }
+}
+
+.mobile-toggle {
+  display: none !important;
 }
 
 /* =========================

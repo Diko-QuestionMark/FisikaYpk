@@ -67,7 +67,7 @@
         const a = wrapMain();
         const q = D.quiz.find((x) => x.id === id && x.tipe === "native");
         if (!q) {
-          a.innerHTML = `<h2>Quiz</h2><p class="sub">Pilih kuis. Guru bisa menautkan Quizizz atau Google Form.</p>${cards(D.quiz, "q")}`;
+          a.innerHTML = `<h2>Quiz</h2><p class="sub">Uji pemahaman dan asah kemampuan fisikamu lewat latihan kuis interaktif.</p>${cards(D.quiz, "q")}`;
           return;
         }
         run = { q, i: 0, ans: [], lock: false };
