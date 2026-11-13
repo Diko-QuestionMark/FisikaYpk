@@ -58,7 +58,7 @@
         const a = wrapMain();
         const m = D.materi.find((x) => x.id === id);
         if (m) {
-          a.innerHTML = `<a class="back" href="#materi">← Semua materi</a><article class="read"><span class="tag">${esc(m.kategori)}</span><h1>${esc(m.judul)}</h1>${yt(m.video)}${fmt(m.isi)}</article>`;
+          a.innerHTML = `<div class="content-wrapper"><a class="back" href="#materi">← Semua materi</a><article class="read"><span class="tag">${esc(m.kategori)}</span><h1>${esc(m.judul)}</h1>${yt(m.video)}${fmt(m.isi)}</article></div>`;
           return;
         }
         a.innerHTML = `<h2>Materi</h2><p class="sub">Pilih topik yang ingin kamu pelajari.</p>${cards(D.materi, "m")}`;
@@ -78,11 +78,11 @@
           { q, i } = run;
         if (i >= q.soal.length) {
           const s = run.ans.filter((v, k) => v === q.soal[k].a).length;
-          a.innerHTML = `<div class="qbox"><h2>${esc(q.judul)} selesai</h2><div class="score">${Math.round((s / q.soal.length) * 100)}</div><p class="sub">Benar ${s} dari ${q.soal.length} soal.</p><div class="row"><button class="btn" onclick="quiz('${q.id}')">Ulangi</button><a class="btn ghost" href="#quiz">Kuis lain</a></div></div>`;
+          a.innerHTML = `<div class="content-wrapper"><div class="qbox"><h2>${esc(q.judul)} selesai</h2><div class="score">${Math.round((s / q.soal.length) * 100)}</div><p class="sub">Benar ${s} dari ${q.soal.length} soal.</p><div class="row"><button class="btn" onclick="quiz('${q.id}')">Ulangi</button><a class="btn ghost" href="#quiz">Kuis lain</a></div></div></div>`;
           return;
         }
         const s = q.soal[i];
-        a.innerHTML = `<a class="back" href="#quiz">← Semua kuis</a><div class="qbox"><div class="bar"><i style="width:${(i / q.soal.length) * 100}%"></i></div><p class="sub">Soal ${i + 1} dari ${q.soal.length}</p><h3>${esc(s.q)}</h3>${s.o.map((o, k) => `<button class="opt" data-k="${k}">${"ABCD"[k]}. ${esc(o)}</button>`).join("")}<div id="fb"></div></div>`;
+        a.innerHTML = `<div class="content-wrapper"><a class="back" href="#quiz">← Semua kuis</a><div class="qbox"><div class="bar"><i style="width:${(i / q.soal.length) * 100}%"></i></div><p class="sub">Soal ${i + 1} dari ${q.soal.length}</p><h3>${esc(s.q)}</h3>${s.o.map((o, k) => `<button class="opt" data-k="${k}">${"ABCD"[k]}. ${esc(o)}</button>`).join("")}<div id="fb"></div></div></div>`;
         a.querySelectorAll(".opt").forEach(
           (b) =>
             (b.onclick = () => {

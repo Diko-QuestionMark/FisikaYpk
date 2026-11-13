@@ -259,30 +259,43 @@ h2 {
 }
 
 /* =========================
-   READING CONTENT
+   READING & DETAIL CONTENT
 ========================= */
+
+.content-wrapper {
+  max-width: 880px;
+  margin: 0 auto;
+  width: 100%;
+}
 
 .read {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 36px;
-  max-width: 760px;
+  padding: 40px 48px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .read h1 {
-  font-size: 30px;
+  font-size: 32px;
   line-height: 1.25;
-  margin: 10px 0 18px;
+  margin: 12px 0 20px;
+}
+
+.read h2 {
+  margin: 28px 0 10px;
+  font-size: 24px;
 }
 
 .read h3 {
-  margin: 26px 0 8px;
+  margin: 24px 0 8px;
   font-size: 20px;
 }
 
 .read p {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  line-height: 1.7;
 }
 
 .read pre {
@@ -290,7 +303,7 @@ h2 {
   border-left: 4px solid var(--primary);
   padding: 12px 16px;
   border-radius: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   overflow-x: auto;
   font:
     15px/1.5 ui-monospace,
@@ -302,14 +315,22 @@ h2 {
   width: 100%;
   border: 0;
   border-radius: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .back {
-  display: inline-block;
-  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
   font-weight: 600;
+  color: var(--primary);
   text-decoration: none;
+  transition: transform var(--transition);
+}
+
+.back:hover {
+  transform: translateX(-3px);
 }
 
 /* =========================
@@ -320,8 +341,9 @@ h2 {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 30px;
-  max-width: 720px;
+  padding: 36px 42px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .bar {
