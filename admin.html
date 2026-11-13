@@ -67,8 +67,47 @@
           data: pData,
         }[tab]();
       }
-      function list(arr, type, sub) {
-        return `<div class="panel"><div class="row" style="justify-content:space-between"><b>Daftar (${arr.length})</b><button class="btn sm" onclick="edit='new';draw()">${ICON_PLUS}Tambah</button></div>${arr.map((x, idx) => `<div class="item"><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px;line-height:1.4">${idx + 1}.</span><div><b>${esc(x.judul)}</b><div class="hint">${esc(sub(x))}</div></div></div><div class="row"><button class="btn sm ghost" onclick="edit='${x.id}';draw()">Ubah</button><button class="btn sm del" onclick="del('${type}','${x.id}')">Hapus</button></div></div>`).join("") || '<div class="empty">Belum ada data.</div>'}</div>`;
+      /* Helper Komponen UI Bersama */
+      function uiPanel({ headerLeft, headerRight = "", content = "", emptyText = "Belum ada data." }) {
+        return `<div class="panel">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+            ${headerLeft}
+            ${headerRight ? `<div>${headerRight}</div>` : ""}
+          </div>
+          ${content || `<div class="empty">${emptyText}</div>`}
+        </div>`;
+      }
+      function uiItem(idx, contentHtml, actionsHtml) {
+        return `<div class="item">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px;line-height:1.4">${idx + 1}.</span>
+            <div>${contentHtml}</div>
+          </div>
+          <div class="row">${actionsHtml}</div>
+        </div>`;
+      }
+      function uiFormActions(onSave, onCancel, saveLabel = "Simpan") {
+        return `<div class="row" style="margin-top:18px">
+          <button class="btn" onclick="${onSave}">${saveLabel}</button>
+          <button class="btn ghost" onclick="${onCancel}">Batal</button>
+        </div>`;
+      }
+      function uiCrudList(arr, type, sub) {
+        const items = arr
+          .map((x, idx) =>
+            uiItem(
+              idx,
+              `<b>${esc(x.judul)}</b><div class="hint">${esc(sub(x))}</div>`,
+              `<button class="btn sm ghost" onclick="edit='${x.id}';draw()">Ubah</button>
+               <button class="btn sm del" onclick="del('${type}','${x.id}')">Hapus</button>`,
+            ),
+          )
+          .join("");
+        return uiPanel({
+          headerLeft: `<b>Daftar (${arr.length})</b>`,
+          headerRight: `<button class="btn sm" onclick="edit='new';draw()">${ICON_PLUS}Tambah</button>`,
+          content: items,
+        });
       }
       function del(t, id) {
         if (confirm("Hapus item ini?")) {
@@ -78,7 +117,7 @@
         }
       }
       function pMateri() {
-        if (!edit) return list(D.materi, "materi", (x) => x.kategori);
+        if (!edit) return uiCrudList(D.materi, "materi", (x) => x.kategori);
         const m = D.materi.find((x) => x.id === edit) || {
           judul: "",
           kategori: "",
@@ -91,7 +130,7 @@
  <label>Ringkasan singkat</label><input id="r" value="${esc(m.ringkasan)}"><label>Link video YouTube (opsional)</label><input id="v" value="${esc(m.video)}">
  <label>Isi materi</label><textarea id="i" style="min-height:260px">${esc(m.isi)}</textarea>
  <div class="hint">Format: awali baris dengan <code>## </code> untuk subjudul. Apit rumus dengan tiga tanda kutip terbalik (\`\`\`). Pisahkan paragraf dengan baris kosong.</div>
- <div class="row" style="margin-top:18px"><button class="btn" onclick="sM('${m.id || ""}')">Simpan</button><button class="btn ghost" onclick="edit=null;draw()">Batal</button></div></div>`;
+ ${uiFormActions(`sM('${m.id || ""}')`, "edit=null;draw()")}</div>`;
       }
       function sM(id) {
         const o = {
@@ -115,7 +154,7 @@
       let Q;
       function pQuiz() {
         if (!edit)
-          return list(
+          return uiCrudList(
             D.quiz,
             "quiz",
             (x) =>
@@ -166,7 +205,7 @@
   <button class="btn sm ghost" style="margin-top:14px" onclick="sync();Q.soal.push({q:'',o:['','','',''],a:0,e:''});draw()">Tambah soal</button>`
      : `<label>Link kuis</label><input id="l" value="${esc(Q.link)}" placeholder="https://"><div class="hint">Siswa akan membuka link ini di tab baru (bisa berupa Google Form, Quizizz, dll).</div>`
  }
- <div class="row" style="margin-top:18px"><button class="btn" onclick="sQ()">Simpan</button><button class="btn ghost" onclick="edit=null;Q=null;draw()">Batal</button></div></div>`;
+ ${uiFormActions("sQ()", "edit=null;Q=null;draw()")}</div>`;
       }
       function sync() {
         Q.judul = $("#j").value;
@@ -204,8 +243,8 @@
         draw();
       }
       function getKelasList() {
-        if (!D.daftar_kelas || !Array.isArray(D.daftar_kelas) || !D.daftar_kelas.length) {
-          D.daftar_kelas = structuredClone(DEFAULT_KELAS);
+        if (!D.daftar_kelas || !Array.isArray(D.daftar_kelas)) {
+          D.daftar_kelas = [];
         }
         return D.daftar_kelas;
       }
@@ -251,46 +290,42 @@
           const list = allList.filter(
             (x) => filterKelas === "Semua" || x.kelas === filterKelas,
           );
-          return `<div class="panel">
-            <div class="row" style="justify-content:space-between;margin-bottom:14px;align-items:center">
-              <div class="row" style="gap:10px;align-items:center">
-                <b>Daftar Sesi Presensi (${list.length})</b>
-                <select onchange="filterKelas=this.value;draw()" style="width:auto;padding:5px 10px;font-size:13px">
-                  <option value="Semua" ${filterKelas === "Semua" ? "selected" : ""}>Semua Kelas</option>
-                  ${getKelasList().map((k) => `<option value="${k}" ${filterKelas === k ? "selected" : ""}>${k}</option>`).join("")}
-                </select>
-              </div>
-              <button class="btn sm" onclick="edit='new';draw()">Buat Sesi Baru</button>
-            </div>
-            ${list.map((x, idx) => {
+          const items = list
+            .map((x, idx) => {
               const h = x.siswa.filter((s) => s.status === "Hadir").length;
               const s = x.siswa.filter((s) => s.status === "Sakit").length;
               const i = x.siswa.filter((s) => s.status === "Izin").length;
               const a = x.siswa.filter((s) => s.status === "Alpa").length;
               const b = x.siswa.filter((s) => !s.status).length;
-              return `<div class="item">
-                <div style="display:flex;align-items:flex-start;gap:12px">
-                  <span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px;line-height:1.4">${idx + 1}.</span>
-                  <div>
-                    <b>${esc(x.kelas)} · ${esc(fmtTanggal(x.tanggal))}</b>
-                    <div class="hint">Topik: ${esc(x.topik || "Umum")} · Total: ${x.siswa.length} siswa</div>
-                    <div class="row" style="margin-top:6px;gap:6px">
-                      <span class="badge h">Hadir: ${h}</span>
-                      <span class="badge s">Sakit: ${s}</span>
-                      <span class="badge i">Izin: ${i}</span>
-                      <span class="badge a">Alpa: ${a}</span>
-                      ${b ? `<span class="badge" style="background:var(--border);color:var(--text-muted)">Belum: ${b}</span>` : ""}
-                    </div>
-                  </div>
-                </div>
-                <div class="row">
-                  <button class="btn sm ghost" onclick="edit='${x.id}';draw()">Buka</button>
-                  <button class="btn sm" onclick="expExcel('${x.id}')">Unduh Excel</button>
-                  <button class="btn sm del" onclick="del('absen','${x.id}')">Hapus</button>
-                </div>
-              </div>`;
-            }).join("") || '<div class="empty">Belum ada data.</div>'}
+              const content = `<b>${esc(x.kelas)} · ${esc(fmtTanggal(x.tanggal))}</b>
+                <div class="hint">Topik: ${esc(x.topik || "Umum")} · Total: ${x.siswa.length} siswa</div>
+                <div class="row" style="margin-top:6px;gap:6px">
+                  <span class="badge h">Hadir: ${h}</span>
+                  <span class="badge s">Sakit: ${s}</span>
+                  <span class="badge i">Izin: ${i}</span>
+                  <span class="badge a">Alpa: ${a}</span>
+                  ${b ? `<span class="badge" style="background:var(--border);color:var(--text-muted)">Belum: ${b}</span>` : ""}
+                </div>`;
+              const actions = `<button class="btn sm ghost" onclick="edit='${x.id}';draw()">Buka</button>
+                <button class="btn sm" onclick="expExcel('${x.id}')">Unduh Excel</button>
+                <button class="btn sm del" onclick="del('absen','${x.id}')">Hapus</button>`;
+              return uiItem(idx, content, actions);
+            })
+            .join("");
+
+          const filterHeader = `<div class="row" style="gap:10px;align-items:center">
+            <b>Daftar (${list.length})</b>
+            <select onchange="filterKelas=this.value;draw()" style="width:auto;padding:5px 10px;font-size:13px">
+              <option value="Semua" ${filterKelas === "Semua" ? "selected" : ""}>Semua Kelas</option>
+              ${getKelasList().map((k) => `<option value="${k}" ${filterKelas === k ? "selected" : ""}>${k}</option>`).join("")}
+            </select>
           </div>`;
+
+          return uiPanel({
+            headerLeft: filterHeader,
+            headerRight: `<button class="btn sm" onclick="edit='new';draw()">Buat Sesi Baru</button>`,
+            content: items,
+          });
         }
 
         if (!A || A._for !== edit) {
@@ -367,9 +402,8 @@
             </div>
           </div>
 
-          <div class="row" style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px">
-            <button class="btn" onclick="sA()">Simpan Presensi</button>
-            <button class="btn ghost" onclick="edit=null;A=null;draw()">Batal</button>
+          <div style="margin-top:24px;border-top:1px solid var(--border)">
+            ${uiFormActions("sA()", "edit=null;A=null;draw()", "Simpan Presensi")}
           </div>
         </div>`;
       }
@@ -499,28 +533,25 @@
         const klsList = getKelasList();
 
         if (!curMasterKls) {
-          return `<div class="panel">
-            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
-              <b>Daftar Kelas (${klsList.length})</b>
-              <button class="btn sm" onclick="tambahKelas()">${ICON_PLUS}Tambah Kelas</button>
-            </div>
-            ${klsList.map((k, idx) => {
-              const count = ((D.kelas_siswa || {})[k] || []).length;
-              return `<div class="item">
-                <div style="display:flex;align-items:center;gap:12px">
-                  <span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px">${idx + 1}.</span>
-                  <div>
-                    <b>Kelas ${esc(k)}</b>
-                    <div class="hint">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>
-                  </div>
-                </div>
-                <div class="row">
-                  <button class="btn sm ghost" onclick="curMasterKls='${esc(k)}';editMaster=false;draw()">Buka</button>
-                  <button class="btn sm del" onclick="hapusKelas('${esc(k)}')">Hapus</button>
-                </div>
-              </div>`;
-            }).join("") || '<div class="empty">Belum ada kelas. Klik tombol <b>Tambah Kelas</b> untuk menambahkan.</div>'}
-          </div>`;
+          const items = klsList
+            .map((k, idx) => {
+              const count = (D.kelas_siswa[k] || []).length;
+              return uiItem(
+                idx,
+                `<b>Kelas ${esc(k)}</b><div class="hint">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>`,
+                `<button class="btn sm ghost" onclick="curMasterKls='${esc(k)}';editMaster=false;draw()">Buka</button>
+                 <button class="btn sm del" onclick="hapusKelas('${esc(k)}')">Hapus</button>`,
+              );
+            })
+            .join("");
+
+          return uiPanel({
+            headerLeft: `<b>Daftar (${klsList.length})</b>`,
+            headerRight: `<button class="btn sm" onclick="tambahKelas()">${ICON_PLUS}Tambah Kelas</button>`,
+            content: items,
+            emptyText:
+              "Belum ada kelas. Klik tombol <b>Tambah Kelas</b> untuk menambahkan.",
+          });
         }
 
         const list = D.kelas_siswa[curMasterKls] || [];
@@ -535,10 +566,7 @@
               <span class="hint">Copy-paste dari Excel atau ketik satu nama per baris</span>
             </div>
             <textarea id="master_text" style="min-height:280px;font-family:inherit;line-height:1.6" placeholder="Budi Santoso&#10;Citra Dewi&#10;Dedi Pratama">${esc(list.join("\n"))}</textarea>
-            <div class="row" style="margin-top:14px">
-              <button class="btn" onclick="saveMasterSiswa()">Simpan Daftar Siswa</button>
-              <button class="btn ghost" onclick="editMaster=false;draw()">Batal</button>
-            </div>
+            ${uiFormActions("saveMasterSiswa()", "editMaster=false;draw()", "Simpan Daftar Siswa")}
           </div>`;
         }
 
@@ -627,7 +655,7 @@
             const j = JSON.parse(t);
             if (!j.site || !j.materi || !j.quiz) throw 0;
             j.absen = j.absen || [];
-            j.daftar_kelas = j.daftar_kelas || structuredClone(DEFAULT_KELAS);
+            j.daftar_kelas = Array.isArray(j.daftar_kelas) ? j.daftar_kelas : [];
             j.kelas_siswa = j.kelas_siswa || {};
             D = j;
             save();

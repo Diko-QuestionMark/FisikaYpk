@@ -1,13 +1,8 @@
 /* Penyimpanan & utilitas bersama (dipakai index.html dan admin.html) */
-const KEY = 'fisika_media_v2';
-const DEFAULT_KELAS = [
-    'X A', 'X B', 'X C', 'X D',
-    'XI A', 'XI B', 'XI C',
-    'XII A', 'XII B', 'XII C'
-];
+const KEY = 'fisika_media_v3';
 const SEED = {
     site: { nama: 'FisikaKu', tagline: 'Belajar fisika jadi lebih mudah, runtut, dan menyenangkan.', deskripsi: 'Media pembelajaran fisika interaktif: baca materi, lalu uji pemahamanmu lewat kuis.', footer: 'Media Pembelajaran Fisika' },
-    daftar_kelas: DEFAULT_KELAS,
+    daftar_kelas: [],
     materi: [],
     quiz: [],
     absen: [],
@@ -20,7 +15,7 @@ const Store = {
             d.materi = d.materi || [];
             d.quiz = d.quiz || [];
             d.absen = d.absen || [];
-            d.daftar_kelas = d.daftar_kelas && Array.isArray(d.daftar_kelas) && d.daftar_kelas.length ? d.daftar_kelas : structuredClone(DEFAULT_KELAS);
+            d.daftar_kelas = Array.isArray(d.daftar_kelas) ? d.daftar_kelas : [];
             d.kelas_siswa = d.kelas_siswa || {};
             return d;
         } catch (e) {
