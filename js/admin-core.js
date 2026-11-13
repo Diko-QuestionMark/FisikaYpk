@@ -35,7 +35,7 @@ function isAuth() {
 function renderLogin() {
   return `<div style="min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.05)">
-      <img src="YPKLOGO.png" alt="Logo" style="width:68px;height:68px;border-radius:50%;margin-bottom:16px;object-fit:contain">
+      <img src="aset/YPKLOGO.png" alt="Logo" style="width:68px;height:68px;border-radius:50%;margin-bottom:16px;object-fit:contain">
       <h2 style="font-size:22px;margin-bottom:4px">Panel Guru</h2>
       <p class="sub" style="font-size:13px;margin-bottom:20px">Masukkan kata sandi guru untuk melanjutkan</p>
       <form onsubmit="event.preventDefault();checkPass();" style="display:flex;flex-direction:column;gap:12px">
@@ -80,7 +80,7 @@ function renderAdmin() {
     <div class="admin-layout">
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-          <img class="sidebar-logo" src="YPKLOGO.png" alt="Logo">
+          <img class="sidebar-logo" src="aset/YPKLOGO.png" alt="Logo">
           <span class="sidebar-title">Panel Guru</span>
         </div>
         <nav class="sidebar-nav" id="sidenav"></nav>
@@ -117,6 +117,7 @@ function draw() {
     site: pSite,
     data: pData,
   }[tab]();
+  if (typeof afterDraw === "function") afterDraw();
 }
 
 /* Helper Komponen UI Bersama */

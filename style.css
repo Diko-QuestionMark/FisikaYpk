@@ -123,7 +123,7 @@ nav a.on {
       rgba(8, 51, 68, 0.72) 55%,
       rgba(8, 51, 68, 0.55) 100%
     ),
-    url("fisika.jpg") center 80% / cover no-repeat var(--hero-bg);
+    url("aset/fisika.jpg") center 80% / cover no-repeat var(--hero-bg);
   color: #fff;
   overflow: hidden;
   position: relative;
@@ -759,3 +759,88 @@ textarea {
     transition: none !important;
   }
 }
+
+/* =========================
+   FORM GRID & QUILL EDITOR
+========================= */
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+.quill-wrapper {
+  background: #ffffff;
+  border-radius: var(--radius-sm);
+}
+
+.ql-toolbar.ql-snow {
+  border-color: var(--border) !important;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
+  background: #f8fafc;
+  font-family: inherit;
+  padding: 10px 12px !important;
+}
+
+.ql-container.ql-snow {
+  border-color: var(--border) !important;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+  font-size: 15px !important;
+  background: #ffffff;
+}
+
+.ql-editor {
+  min-height: 260px;
+  line-height: 1.7;
+  color: var(--text);
+  padding: 16px 20px !important;
+}
+
+.ql-editor.ql-blank::before {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: #94a3b8;
+  font-style: normal;
+  left: 20px;
+}
+
+/* Rich content styles for student read view & editor */
+.read img,
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin: 16px 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  display: block;
+}
+
+.read ul,
+.read ol {
+  margin: 0 0 16px;
+  padding-left: 24px;
+}
+
+.read li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.read blockquote {
+  border-left: 4px solid var(--primary);
+  margin: 16px 0;
+  padding: 8px 16px;
+  background: rgba(37, 99, 235, 0.05);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+

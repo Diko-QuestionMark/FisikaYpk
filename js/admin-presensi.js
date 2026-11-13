@@ -80,7 +80,7 @@ function pAbsen() {
       </div>
     </div>
     <label>Materi / Topik Pembelajaran</label>
-    <input id="a_topik" value="${esc(A.topik)}" placeholder="Contoh: Gerak Lurus Beraturan (GLB)">
+    <input id="a_topik" value="${esc(A.topik)}" placeholder="Tuliskan topik bahasan atau aktivitas pertemuan ini">
 
     <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px">
       <div style="margin-bottom:12px">
