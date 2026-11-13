@@ -68,7 +68,7 @@
         }[tab]();
       }
       function list(arr, type, sub) {
-        return `<div class="panel"><div class="row" style="justify-content:space-between"><b>Daftar (${arr.length})</b><button class="btn sm" onclick="edit='new';draw()">${ICON_PLUS}Tambah</button></div>${arr.map((x) => `<div class="item"><div><b>${esc(x.judul)}</b><div class="hint">${esc(sub(x))}</div></div><div class="row"><button class="btn sm ghost" onclick="edit='${x.id}';draw()">Ubah</button><button class="btn sm del" onclick="del('${type}','${x.id}')">Hapus</button></div></div>`).join("") || '<div class="empty">Belum ada data.</div>'}</div>`;
+        return `<div class="panel"><div class="row" style="justify-content:space-between"><b>Daftar (${arr.length})</b><button class="btn sm" onclick="edit='new';draw()">${ICON_PLUS}Tambah</button></div>${arr.map((x, idx) => `<div class="item"><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px;line-height:1.4">${idx + 1}.</span><div><b>${esc(x.judul)}</b><div class="hint">${esc(sub(x))}</div></div></div><div class="row"><button class="btn sm ghost" onclick="edit='${x.id}';draw()">Ubah</button><button class="btn sm del" onclick="del('${type}','${x.id}')">Hapus</button></div></div>`).join("") || '<div class="empty">Belum ada data.</div>'}</div>`;
       }
       function del(t, id) {
         if (confirm("Hapus item ini?")) {
@@ -203,18 +203,47 @@
         save();
         draw();
       }
-      const DAFTAR_KELAS = [
-        "X A",
-        "X B",
-        "X C",
-        "X D",
-        "XI A",
-        "XI B",
-        "XI C",
-        "XII A",
-        "XII B",
-        "XII C",
-      ];
+      function getKelasList() {
+        if (!D.daftar_kelas || !Array.isArray(D.daftar_kelas) || !D.daftar_kelas.length) {
+          D.daftar_kelas = structuredClone(DEFAULT_KELAS);
+        }
+        return D.daftar_kelas;
+      }
+      function tambahKelas() {
+        const raw = prompt("Masukkan nama kelas baru (contoh: X E atau XII D):");
+        if (raw === null) return;
+        const kls = raw.trim();
+        if (!kls) return toast("Nama kelas tidak boleh kosong");
+        const list = getKelasList();
+        if (list.some((k) => k.toLowerCase() === kls.toLowerCase())) {
+          return toast(`Kelas ${kls} sudah ada!`);
+        }
+        list.push(kls);
+        D.daftar_kelas = list;
+        D.kelas_siswa = D.kelas_siswa || {};
+        if (!D.kelas_siswa[kls]) D.kelas_siswa[kls] = [];
+        save();
+        draw();
+        toast(`Kelas ${kls} berhasil ditambahkan`);
+      }
+      function hapusKelas(kls) {
+        const siswa = (D.kelas_siswa || {})[kls] || [];
+        const msg = siswa.length
+          ? `Hapus kelas ${kls} beserta ${siswa.length} siswa di dalamnya?`
+          : `Hapus kelas ${kls}?`;
+        if (confirm(msg)) {
+          D.daftar_kelas = getKelasList().filter((k) => k !== kls);
+          if (D.kelas_siswa && D.kelas_siswa[kls]) {
+            delete D.kelas_siswa[kls];
+          }
+          if (curMasterKls === kls) {
+            curMasterKls = null;
+          }
+          save();
+          draw();
+          toast(`Kelas ${kls} dihapus`);
+        }
+      }
       let A, filterKelas = "Semua";
       function pAbsen() {
         if (!edit) {
@@ -228,27 +257,30 @@
                 <b>Daftar Sesi Presensi (${list.length})</b>
                 <select onchange="filterKelas=this.value;draw()" style="width:auto;padding:5px 10px;font-size:13px">
                   <option value="Semua" ${filterKelas === "Semua" ? "selected" : ""}>Semua Kelas</option>
-                  ${DAFTAR_KELAS.map((k) => `<option value="${k}" ${filterKelas === k ? "selected" : ""}>${k}</option>`).join("")}
+                  ${getKelasList().map((k) => `<option value="${k}" ${filterKelas === k ? "selected" : ""}>${k}</option>`).join("")}
                 </select>
               </div>
               <button class="btn sm" onclick="edit='new';draw()">Buat Sesi Baru</button>
             </div>
-            ${list.map((x) => {
+            ${list.map((x, idx) => {
               const h = x.siswa.filter((s) => s.status === "Hadir").length;
               const s = x.siswa.filter((s) => s.status === "Sakit").length;
               const i = x.siswa.filter((s) => s.status === "Izin").length;
               const a = x.siswa.filter((s) => s.status === "Alpa").length;
               const b = x.siswa.filter((s) => !s.status).length;
               return `<div class="item">
-                <div>
-                  <b>${esc(x.kelas)} · ${esc(x.tanggal)}</b>
-                  <div class="hint">Topik: ${esc(x.topik || "Umum")} · Total: ${x.siswa.length} siswa</div>
-                  <div class="row" style="margin-top:6px;gap:6px">
-                    <span class="badge h">Hadir: ${h}</span>
-                    <span class="badge s">Sakit: ${s}</span>
-                    <span class="badge i">Izin: ${i}</span>
-                    <span class="badge a">Alpa: ${a}</span>
-                    ${b ? `<span class="badge" style="background:var(--border);color:var(--text-muted)">Belum: ${b}</span>` : ""}
+                <div style="display:flex;align-items:flex-start;gap:12px">
+                  <span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px;line-height:1.4">${idx + 1}.</span>
+                  <div>
+                    <b>${esc(x.kelas)} · ${esc(fmtTanggal(x.tanggal))}</b>
+                    <div class="hint">Topik: ${esc(x.topik || "Umum")} · Total: ${x.siswa.length} siswa</div>
+                    <div class="row" style="margin-top:6px;gap:6px">
+                      <span class="badge h">Hadir: ${h}</span>
+                      <span class="badge s">Sakit: ${s}</span>
+                      <span class="badge i">Izin: ${i}</span>
+                      <span class="badge a">Alpa: ${a}</span>
+                      ${b ? `<span class="badge" style="background:var(--border);color:var(--text-muted)">Belum: ${b}</span>` : ""}
+                    </div>
                   </div>
                 </div>
                 <div class="row">
@@ -257,7 +289,7 @@
                   <button class="btn sm del" onclick="del('absen','${x.id}')">Hapus</button>
                 </div>
               </div>`;
-            }).join("") || `<div class="empty">Belum ada sesi presensi ${filterKelas !== "Semua" ? "untuk kelas " + filterKelas : ""}. Klik tombol <b>Buat Sesi Baru</b> untuk memulai.</div>`}
+            }).join("") || '<div class="empty">Belum ada data.</div>'}
           </div>`;
         }
 
@@ -284,13 +316,14 @@
           <div class="row" style="gap:14px;margin-top:10px">
             <div style="flex:1;min-width:200px">
               <label>Tanggal</label>
-              <input type="date" id="a_tgl" value="${esc(A.tanggal)}">
+              <input type="date" id="a_tgl" value="${esc(A.tanggal)}" onchange="syncA();draw()">
+              <div class="hint">${fmtTanggal(A.tanggal)}</div>
             </div>
             <div style="flex:1;min-width:200px">
               <label>Pilih Kelas</label>
               <select id="a_kls" onchange="onAbsenKelasChange(this.value)">
                 <option value="" ${!A.kelas ? "selected" : ""}>-- Pilih Kelas --</option>
-                ${DAFTAR_KELAS.map((k) => `<option value="${k}" ${A.kelas === k ? "selected" : ""}>${k}</option>`).join("")}
+                ${getKelasList().map((k) => `<option value="${k}" ${A.kelas === k ? "selected" : ""}>${k}</option>`).join("")}
               </select>
             </div>
           </div>
@@ -298,12 +331,9 @@
           <input id="a_topik" value="${esc(A.topik)}" placeholder="Contoh: Gerak Lurus Beraturan (GLB)">
 
           <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px">
-            <div class="row" style="justify-content:space-between;margin-bottom:12px;align-items:center">
-              <div>
-                <b>Daftar Kehadiran Siswa ${A.kelas ? "Kelas " + esc(A.kelas) + " (" + A.siswa.length + " siswa)" : ""}</b>
-                <div class="hint">Pilih status kehadiran: H (Hadir), S (Sakit), I (Izin), atau A (Alpa)</div>
-              </div>
-              ${A.siswa.length ? `<button class="btn sm ghost" type="button" onclick="syncA();setAllHadir()">Semua Hadir</button>` : ""}
+            <div style="margin-bottom:12px">
+              <b>Daftar Kehadiran Siswa ${A.kelas ? "Kelas " + esc(A.kelas) + " (" + A.siswa.length + " siswa)" : ""}</b>
+              <div class="hint">Pilih status kehadiran: H (Hadir), S (Sakit), I (Izin), atau A (Alpa)</div>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:8px" id="siswa_list">
@@ -375,10 +405,6 @@
           draw();
         }
       }
-      function setAllHadir() {
-        A.siswa.forEach((s) => (s.status = "Hadir"));
-        draw();
-      }
       function sA() {
         syncA();
         if (!A.tanggal) return toast("Tanggal wajib diisi");
@@ -422,7 +448,7 @@
           <body>
             <table>
               <tr><td colspan="4" class="title">REKAPITULASI PRESENSI - KELAS ${esc(s.kelas)}</td></tr>
-              <tr><td class="meta">Tanggal</td><td colspan="3">${esc(s.tanggal)}</td></tr>
+              <tr><td class="meta">Tanggal</td><td colspan="3">${esc(fmtTanggal(s.tanggal))}</td></tr>
               <tr><td class="meta">Materi / Topik</td><td colspan="3">${esc(s.topik || "-")}</td></tr>
               <tr><td class="meta">Ringkasan Kehadiran</td><td colspan="3">Total Siswa: ${s.siswa.length} | Hadir: ${h} | Sakit: ${sk} | Izin: ${i} | Alpa: ${a}${b ? " | Belum Dipilih: " + b : ""}</td></tr>
               <tr><td colspan="4"></td></tr>
@@ -470,41 +496,30 @@
         editMaster = false;
       function pSiswa() {
         D.kelas_siswa = D.kelas_siswa || {};
+        const klsList = getKelasList();
 
         if (!curMasterKls) {
           return `<div class="panel">
-            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
-              <div>
-                <b style="font-size:16px">Data Siswa per Kelas</b>
-                <div class="hint">Pilih salah satu kelas di bawah untuk melihat dan mengelola daftar nama siswa</div>
-              </div>
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+              <b>Daftar Kelas (${klsList.length})</b>
+              <button class="btn sm" onclick="tambahKelas()">${ICON_PLUS}Tambah Kelas</button>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px">
-              ${DAFTAR_KELAS.map((k) => {
-                const count = ((D.kelas_siswa || {})[k] || []).length;
-                return `
-                  <div onclick="curMasterKls='${k}';editMaster=false;draw()" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:flex;flex-direction:column;justify-content:space-between;min-height:105px" onmouseover="this.style.borderColor='var(--primary)';this.style.boxShadow='0 4px 12px rgba(8,145,178,0.12)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
-                    <div class="row" style="justify-content:space-between;align-items:flex-start">
-                      <div>
-                        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Kelas</div>
-                        <div style="font-size:20px;font-weight:800;color:var(--text);margin-top:2px">${k}</div>
-                      </div>
-                      <div style="width:34px;height:34px;border-radius:8px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                      </div>
-                    </div>
-                    <div class="row" style="justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)">
-                      <span style="font-size:13px;font-weight:600;color:${count ? "var(--primary)" : "var(--text-muted)"}">
-                        ${count ? `${count} Siswa` : "0 Siswa"}
-                      </span>
-                      <span style="font-size:12px;font-weight:600;color:var(--text-muted)">
-                        Buka &rarr;
-                      </span>
-                    </div>
+            ${klsList.map((k, idx) => {
+              const count = ((D.kelas_siswa || {})[k] || []).length;
+              return `<div class="item">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px">${idx + 1}.</span>
+                  <div>
+                    <b>Kelas ${esc(k)}</b>
+                    <div class="hint">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>
                   </div>
-                `;
-              }).join("")}
-            </div>
+                </div>
+                <div class="row">
+                  <button class="btn sm ghost" onclick="curMasterKls='${esc(k)}';editMaster=false;draw()">Buka</button>
+                  <button class="btn sm del" onclick="hapusKelas('${esc(k)}')">Hapus</button>
+                </div>
+              </div>`;
+            }).join("") || '<div class="empty">Belum ada kelas. Klik tombol <b>Tambah Kelas</b> untuk menambahkan.</div>'}
           </div>`;
         }
 
@@ -515,7 +530,7 @@
             <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
               <div class="row" style="gap:10px;align-items:center">
                 <button class="btn sm ghost" onclick="editMaster=false;draw()">← Kembali</button>
-                <b>Edit Daftar Siswa: Kelas ${curMasterKls}</b>
+                <b>Edit Daftar Siswa: Kelas ${esc(curMasterKls)}</b>
               </div>
               <span class="hint">Copy-paste dari Excel atau ketik satu nama per baris</span>
             </div>
@@ -530,11 +545,14 @@
         return `<div class="panel">
           <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
             <div class="row" style="gap:10px;align-items:center">
-              <button class="btn sm ghost" onclick="curMasterKls=null;draw()">← Semua Kelas</button>
-              <b>Kelas ${curMasterKls}</b>
+              <button class="btn sm ghost" onclick="curMasterKls=null;draw()">← Kembali ke Daftar Kelas</button>
+              <b>Kelas ${esc(curMasterKls)}</b>
               <span class="hint">(${list.length} Siswa)</span>
             </div>
-            <button class="btn sm" onclick="editMaster=true;draw()">Edit</button>
+            <div class="row">
+              <button class="btn sm" onclick="editMaster=true;draw()">Edit</button>
+              <button class="btn sm del" onclick="hapusKelas('${esc(curMasterKls)}')">Hapus Kelas</button>
+            </div>
           </div>
 
           <div style="background:var(--bg);border-radius:10px;padding:16px">
@@ -592,7 +610,7 @@
       }
       function pData() {
         return `<div class="panel"><b>Cadangan data</b><p class="sub">Penyimpanan lokal hanya ada di browser ini. Unduh cadangan untuk memindahkan data ke komputer lain.</p>
- <div class="row"><button class="btn" onclick="exp()">Unduh cadangan (.json)</button><label class="btn ghost" style="margin:0;cursor:pointer">Pulihkan dari file<input type="file" accept=".json" hidden onchange="imp(this.files[0])"></label><button class="btn del" onclick="if(confirm('Kembalikan ke data contoh? Semua perubahan hilang.')){Store.reset();D=Store.get();draw()}">Reset ke contoh</button></div></div>`;
+ <div class="row"><button class="btn" onclick="exp()">Unduh cadangan (.json)</button><label class="btn ghost" style="margin:0;cursor:pointer">Pulihkan dari file<input type="file" accept=".json" hidden onchange="imp(this.files[0])"></label><button class="btn del" onclick="if(confirm('Kosongkan semua data? Semua data yang tersimpan akan dihapus.')){Store.reset();D=Store.get();draw()}">Kosongkan data</button></div></div>`;
       }
       function exp() {
         const a = document.createElement("a");
@@ -609,6 +627,7 @@
             const j = JSON.parse(t);
             if (!j.site || !j.materi || !j.quiz) throw 0;
             j.absen = j.absen || [];
+            j.daftar_kelas = j.daftar_kelas || structuredClone(DEFAULT_KELAS);
             j.kelas_siswa = j.kelas_siswa || {};
             D = j;
             save();

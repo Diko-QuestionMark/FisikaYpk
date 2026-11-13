@@ -1,37 +1,17 @@
 /* Penyimpanan & utilitas bersama (dipakai index.html dan admin.html) */
-const KEY = 'fisika_media_v1';
+const KEY = 'fisika_media_v2';
+const DEFAULT_KELAS = [
+    'X A', 'X B', 'X C', 'X D',
+    'XI A', 'XI B', 'XI C',
+    'XII A', 'XII B', 'XII C'
+];
 const SEED = {
     site: { nama: 'FisikaKu', tagline: 'Belajar fisika jadi lebih mudah, runtut, dan menyenangkan.', deskripsi: 'Media pembelajaran fisika interaktif: baca materi, lalu uji pemahamanmu lewat kuis.', footer: 'Media Pembelajaran Fisika' },
-    materi: [{ id: 'm1', judul: 'Gerak Lurus Beraturan (GLB)', kategori: 'Kinematika', ringkasan: 'Gerak benda pada lintasan lurus dengan kecepatan tetap.', video: '', isi: '## Pengertian\nGLB adalah gerak benda pada lintasan lurus dengan kecepatan konstan, sehingga percepatannya nol.\n\n## Rumus\n```\ns = v × t\n```\nDengan s = jarak (m), v = kecepatan (m/s), t = waktu (s).\n\n## Contoh\nMobil melaju 20 m/s selama 10 s. Jarak tempuhnya 20 × 10 = 200 m.' },
-    { id: 'm2', judul: 'Hukum Newton', kategori: 'Dinamika', ringkasan: 'Tiga hukum dasar yang menjelaskan hubungan gaya dan gerak.', video: '', isi: '## Hukum I\nBenda diam atau bergerak lurus beraturan akan mempertahankan keadaannya bila resultan gaya nol.\n\n## Hukum II\n```\nΣF = m × a\n```\n\n## Hukum III\nSetiap aksi menimbulkan reaksi yang sama besar dan berlawanan arah.' }],
-    quiz: [{
-        id: 'q1', judul: 'Kuis GLB', tipe: 'native', link: '', deskripsi: 'Uji pemahaman tentang gerak lurus beraturan.', soal: [
-            { q: 'Pada GLB, percepatan benda adalah…', o: ['Konstan tidak nol', 'Nol', 'Bertambah', 'Berkurang'], a: 1, e: 'Kecepatan tetap berarti percepatan nol.' },
-            { q: 'Mobil melaju 20 m/s selama 5 s. Jarak tempuhnya…', o: ['4 m', '25 m', '100 m', '200 m'], a: 2, e: 's = v × t = 20 × 5 = 100 m.' }]
-    },
-    { id: 'q2', judul: 'Latihan Hukum Newton (Quizizz)', tipe: 'link', link: 'https://quizizz.com', deskripsi: 'Kerjakan di Quizizz.', soal: [] }],
-    absen: [
-        {
-            id: 'a1',
-            tanggal: new Date().toISOString().slice(0, 10),
-            kelas: 'X A',
-            topik: 'Gerak Lurus Beraturan (GLB)',
-            siswa: [
-                { nama: 'Budi Santoso', status: 'Hadir', catatan: '' },
-                { nama: 'Citra Dewi', status: 'Hadir', catatan: '' },
-                { nama: 'Dedi Pratama', status: 'Sakit', catatan: 'Demam' },
-                { nama: 'Eka Putri', status: 'Izin', catatan: 'Lomba' }
-            ]
-        }
-    ],
-    kelas_siswa: {
-        'X A': [
-            'Aditia Pratama', 'Budi Santoso', 'Citra Dewi', 'Dedi Pratama', 'Eka Putri', 'Fajar Ramadhan'
-        ],
-        'X B': [
-            'Anisa Rahma', 'Bagas Wijaya', 'Dimas Anggara', 'Gita Gutawa', 'Hendra Setiawan'
-        ]
-    }
+    daftar_kelas: DEFAULT_KELAS,
+    materi: [],
+    quiz: [],
+    absen: [],
+    kelas_siswa: {}
 };
 const Store = {
     get() {
@@ -40,6 +20,7 @@ const Store = {
             d.materi = d.materi || [];
             d.quiz = d.quiz || [];
             d.absen = d.absen || [];
+            d.daftar_kelas = d.daftar_kelas && Array.isArray(d.daftar_kelas) && d.daftar_kelas.length ? d.daftar_kelas : structuredClone(DEFAULT_KELAS);
             d.kelas_siswa = d.kelas_siswa || {};
             return d;
         } catch (e) {
@@ -51,6 +32,23 @@ const Store = {
     uid(p) { return p + Date.now().toString(36) }
 };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function fmtTanggal(str) {
+    if (!str) return '';
+    try {
+        const parts = String(str).split('-');
+        if (parts.length === 3) {
+            const d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            }
+        }
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+    } catch (e) { }
+    return str;
+}
 /* Format materi: "## Judul", blok ``` rumus ```, paragraf dipisah baris kosong */
 function fmt(t) { return String(t || '').split(/```/).map((b, i) => i % 2 ? `<pre>${esc(b.trim())}</pre>` : b.split(/\n\s*\n/).map(p => { p = p.trim(); if (!p) return ''; return p.split('\n').map(l => l.startsWith('## ') ? `<h3>${esc(l.slice(3))}</h3>` : `<p>${esc(l)}</p>`).join('') }).join('')).join('') }
 function yt(u) { const m = String(u || '').match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe>` : '' }

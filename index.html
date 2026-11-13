@@ -45,7 +45,7 @@
       }
       function cards(l, t) {
         if (!l.length)
-          return `<div class="empty">Belum ada konten. Tambahkan lewat halaman admin.</div>`;
+          return `<div class="empty">${t === "m" ? "Tidak ada materi" : "Tidak ada kuis"}</div>`;
         return `<div class="grid">${l
           .map((x) =>
             t === "m"
@@ -109,7 +109,7 @@
       function home() {
         const m = document.querySelector("main");
         m.style.padding = "0";
-        m.innerHTML = `<section class="hero"><div class="wrap"><h1>${esc(D.site.tagline)}</h1><p>${esc(D.site.deskripsi)}</p><a class="btn" href="#materi">Mulai belajar</a></div></section><div class="wrap" style="padding:40px 20px"><h2>Materi terbaru</h2><p class="sub">Lanjutkan dari topik berikut.</p>${cards(D.materi.slice(-3).reverse(), "m")}</div>`;
+        m.innerHTML = `<section class="hero"><div class="wrap"><h1>${esc(D.site.tagline)}</h1><p>${esc(D.site.deskripsi)}</p><a class="btn" href="#materi">Mulai belajar</a></div></section><div class="wrap" style="padding:40px 20px"><h2 style="margin-bottom:20px">Materi terbaru</h2>${cards(D.materi.slice(-3).reverse(), "m")}</div>`;
       }
       addEventListener("hashchange", route);
       route();
