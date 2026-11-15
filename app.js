@@ -55,6 +55,19 @@ function fmt(t) {
     }
     return str.split(/```/).map((b, i) => i % 2 ? `<pre>${esc(b.trim())}</pre>` : b.split(/\n\s*\n/).map(p => { p = p.trim(); if (!p) return ''; return p.split('\n').map(l => l.startsWith('## ') ? `<h3>${esc(l.slice(3))}</h3>` : `<p>${esc(l)}</p>`).join('') }).join('')).join('');
 }
+/* Cuplikan/ringkasan otomatis dari teks isi materi */
+function cuplikan(html, len = 120) {
+    if (!html) return '';
+    try {
+        const doc = new DOMParser().parseFromString(String(html), 'text/html');
+        const text = (doc.body.textContent || '').trim().replace(/\s+/g, ' ');
+        if (!text) return 'Pelajari materi selengkapnya →';
+        return text.length > len ? text.slice(0, len) + '…' : text;
+    } catch (e) {
+        const clean = String(html).replace(/<[^>]*>/g, '').trim().replace(/\s+/g, ' ');
+        return clean.length > len ? clean.slice(0, len) + '…' : (clean || 'Pelajari materi selengkapnya →');
+    }
+}
 function yt(u) { const m = String(u || '').match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe>` : '' }
 const TIPE = { native: 'Kuis di website', link: 'Link eksternal' };
 /* Header & footer sama di semua halaman agar tampilan konsisten */

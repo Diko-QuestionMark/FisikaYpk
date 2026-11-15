@@ -9,6 +9,7 @@
       rel="stylesheet"
     />
     <link rel="icon" type="image/png" href="aset/YPKLOGO.png" />
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -47,18 +48,65 @@
         if (!l.length)
           return `<div class="empty">${t === "m" ? "Tidak ada materi" : "Tidak ada kuis"}</div>`;
         return `<div class="grid">${l
-          .map((x) =>
-            t === "m"
-              ? `<div class="card"><span class="tag">${esc(x.kategori)}</span><h3>${esc(x.judul)}</h3><p>${esc(x.ringkasan)}</p><a class="btn sm" href="#materi/${x.id}" style="align-self:flex-start">Baca materi</a></div>`
-              : `<div class="card"><span class="tag q">${TIPE[x.tipe] || "Link eksternal"}</span><h3>${esc(x.judul)}</h3><p>${esc(x.deskripsi)}</p>${x.tipe === "native" ? `<a class="btn sm" href="#quiz/${x.id}" style="align-self:flex-start">Kerjakan (${x.soal.length} soal)</a>` : `<a class="btn sm" target="_blank" rel="noopener" href="${esc(x.link)}" style="align-self:flex-start">Buka kuis</a>`}</div>`,
-          )
+          .map((x) => {
+            if (t === "m") {
+              const hasVid = x.video || /<iframe|ql-video/i.test(x.isi || "");
+              const preview = x.ringkasan || cuplikan(x.isi) || "Klik untuk membaca materi selengkapnya.";
+              return `<div class="card clickable" onclick="location.hash='#materi/${x.id}'"><div class="row" style="justify-content:space-between;align-items:center"><span class="tag">${esc(x.kategori || "Umum")}</span>${hasVid ? `<span class="tag" style="background:#fee2e2;color:#dc2626;font-size:11px">▶ Video</span>` : ""}</div><h3>${esc(x.judul)}</h3><p>${esc(preview)}</p><span class="btn sm" style="align-self:flex-start;pointer-events:none">Baca materi →</span></div>`;
+            }
+            return `<div class="card clickable" onclick="${x.tipe === "native" ? `location.hash='#quiz/${x.id}'` : `window.open('${esc(x.link)}','_blank')`}"><span class="tag q">${TIPE[x.tipe] || "Link eksternal"}</span><h3>${esc(x.judul)}</h3><p>${esc(x.deskripsi)}</p><span class="btn sm" style="align-self:flex-start;pointer-events:none">${x.tipe === "native" ? `Kerjakan (${x.soal.length} soal) →` : `Buka kuis ↗`}</span></div>`;
+          })
           .join("")}</div>`;
       }
       function materi(id) {
         const a = wrapMain();
         const m = D.materi.find((x) => x.id === id);
         if (m) {
-          a.innerHTML = `<div class="content-wrapper"><a class="back" href="#materi">← Semua materi</a><article class="read"><span class="tag">${esc(m.kategori)}</span><h1>${esc(m.judul)}</h1>${yt(m.video)}${fmt(m.isi)}</article></div>`;
+          const idx = D.materi.findIndex((x) => x.id === id);
+          const prev = idx > 0 ? D.materi[idx - 1] : null;
+          const next = idx >= 0 && idx < D.materi.length - 1 ? D.materi[idx + 1] : null;
+
+          const textOnly = (new DOMParser().parseFromString(m.isi || "", "text/html").body.textContent || "").trim();
+          const wordCount = textOnly ? textOnly.split(/\s+/).length : 0;
+          const menitBaca = Math.max(1, Math.ceil(wordCount / 180));
+
+          const relatedQuiz = D.quiz.find((q) => q.tipe === "native");
+          const legacyVid = (m.video && !(m.isi || "").includes(m.video)) ? yt(m.video) : "";
+
+          a.innerHTML = `<div class="content-wrapper">
+            <div class="read-topbar">
+              <a class="back" href="#materi">← Semua materi</a>
+              <span class="read-category-crumb">${esc(m.kategori || "Materi")}</span>
+            </div>
+            <article class="read">
+              <div class="read-header">
+                <span class="tag">${esc(m.kategori || "Umum")}</span>
+                <h1>${esc(m.judul)}</h1>
+                <div class="read-meta">
+                  <span>⏱ ${menitBaca} menit baca</span>
+                </div>
+              </div>
+              ${legacyVid}
+              <div class="read-body">
+                ${fmt(m.isi)}
+              </div>
+              <div class="read-footer">
+                <div class="read-nav">
+                  ${prev ? `<a class="read-nav-btn prev" href="#materi/${prev.id}"><span class="nav-label">← Sebelumnya</span><span class="nav-title">${esc(prev.judul)}</span></a>` : `<div></div>`}
+                  ${next ? `<a class="read-nav-btn next" href="#materi/${next.id}"><span class="nav-label">Selanjutnya →</span><span class="nav-title">${esc(next.judul)}</span></a>` : `<div></div>`}
+                </div>
+                ${relatedQuiz ? `
+                  <div class="quiz-cta">
+                    <div class="quiz-cta-text">
+                      <b>Uji Pemahaman Materi</b>
+                      <p>Selesaikan kuis latihan untuk mengasah pemahamanmu terkait topik ini.</p>
+                    </div>
+                    <a class="btn" href="#quiz/${relatedQuiz.id}">Mulai Kuis →</a>
+                  </div>
+                ` : ""}
+              </div>
+            </article>
+          </div>`;
           return;
         }
         a.innerHTML = `<h2>Materi</h2><p class="sub">Pilih topik yang ingin kamu pelajari.</p>${cards(D.materi, "m")}`;

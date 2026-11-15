@@ -8,12 +8,10 @@ function pMateri() {
   }
 
   const m = edit === "new"
-    ? { judul: "", kategori: "", ringkasan: "", video: "", isi: "" }
+    ? { judul: "", kategori: "", isi: "" }
     : (D.materi.find((x) => x.id === edit) || {
         judul: "",
         kategori: "",
-        ringkasan: "",
-        video: "",
         isi: "",
       });
 
@@ -21,29 +19,18 @@ function pMateri() {
     <b>${m.id ? "Ubah" : "Tambah"} materi</b>
     <div class="form-grid-2" style="margin-top:14px">
       <div>
-        <label>Judul</label>
-        <input id="j" value="${esc(m.judul)}" placeholder="Tuliskan judul pokok bahasan materi">
+        <label>Judul Materi</label>
+        <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hukum Newton tentang Gerak">
       </div>
       <div>
-        <label>Bab</label>
-        <input id="k" value="${esc(m.kategori)}" placeholder="Tuliskan nama bab materi">
+        <label>Bab / Kategori</label>
+        <input id="k" value="${esc(m.kategori)}" placeholder="Contoh: Dinamika Gerak, Listrik Dinamis">
       </div>
     </div>
-    <div class="form-grid-2">
-      <div>
-        <label>Ringkasan singkat</label>
-        <input id="r" value="${esc(m.ringkasan)}" placeholder="Tuliskan gambaran ringkas materi sebagai pengantar awal siswa">
-      </div>
-      <div>
-        <label>Link video YouTube (opsional)</label>
-        <input id="v" value="${esc(m.video)}" placeholder="Tempelkan tautan video YouTube pendukung pembelajaran jika ada">
-      </div>
-    </div>
-    <label style="margin-top:12px">Isi materi</label>
-    <div class="quill-wrapper" style="margin-bottom:8px">
+    <label style="margin-top:14px">Isi materi</label>
+    <div class="quill-wrapper" style="margin-bottom:16px">
       <div id="quill_editor"></div>
     </div>
-    <div class="hint" style="margin-bottom:16px">Gunakan toolbar di atas untuk mengatur format teks (Tebal, Miring, Warna, Heading, Daftar Poin) atau menyisipkan gambar langsung.</div>
     ${uiFormActions(`sM('${m.id || ""}')`, "edit=null;quillMateri=null;draw()")}
   </div>`;
 }
@@ -58,7 +45,7 @@ function initQuillMateri() {
 
   quillMateri = new Quill("#quill_editor", {
     theme: "snow",
-    placeholder: "Tuliskan isi materi pembelajaran di sini... Anda bisa mengubah gaya tulisan, membuat daftar poin, atau menyisipkan foto diagram materi.",
+    placeholder: "Tuliskan isi materi pembelajaran di sini... Anda bisa mengatur format tulisan, rumus fisika, menyisipkan foto diagram, atau menyematkan video YouTube pendukung.",
     modules: {
       toolbar: [
         [{ header: [1, 2, 3, false] }],
@@ -67,7 +54,7 @@ function initQuillMateri() {
         [{ list: "ordered" }, { list: "bullet" }],
         [{ align: [] }],
         ["blockquote", "code-block"],
-        ["link", "image"],
+        ["link", "image", "video"],
         ["clean"],
       ],
     },
@@ -92,18 +79,20 @@ function sM(id) {
   if (quillMateri) {
     const textLen = quillMateri.getText().trim().length;
     const hasImg = quillMateri.root.querySelector("img") !== null;
-    isiContent = (textLen > 0 || hasImg) ? quillMateri.root.innerHTML : "";
+    const hasVid = quillMateri.root.querySelector("iframe") !== null;
+    isiContent = (textLen > 0 || hasImg || hasVid) ? quillMateri.root.innerHTML : "";
   } else {
     const fallbackTextarea = $("#i");
     isiContent = fallbackTextarea ? fallbackTextarea.value : "";
   }
 
+  const existing = D.materi.find((x) => x.id === id);
   const o = {
     id: id || Store.uid("m"),
     judul: $("#j").value.trim(),
     kategori: $("#k").value.trim() || "Umum",
-    ringkasan: $("#r").value.trim(),
-    video: $("#v").value.trim(),
+    ringkasan: cuplikan(isiContent),
+    video: existing?.video || "",
     isi: isiContent,
   };
   if (!o.judul) return toast("Judul wajib diisi");
