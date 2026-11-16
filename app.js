@@ -49,7 +49,15 @@ function fmtTanggal(str) {
 /* Format materi: mendukung HTML langsung (Quill editor) dan fallback format lama ("## Judul", ``` rumus ```) */
 function fmt(t) {
     if (!t) return '';
-    const str = String(t).trim();
+    let str = String(t).trim();
+    // Otomatis normalisasi URL YouTube di dalam iframe (misal watch?v= diubah jadi embed/ resmi)
+    str = str.replace(/<iframe\b([^>]*?)src=["'](?:https?:)?\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([\w-]{11})[^"']*["']([^>]*?)>/gi, (match, before, vid, after) => {
+        let attrs = `${before} ${after}`;
+        if (!/allowfullscreen/i.test(attrs)) attrs += ' allowfullscreen';
+        if (!/referrerpolicy/i.test(attrs)) attrs += ' referrerpolicy="strict-origin-when-cross-origin"';
+        if (!/allow=/i.test(attrs)) attrs += ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"';
+        return `<iframe src="https://www.youtube.com/embed/${vid}" ${attrs.replace(/\s+/g, ' ').trim()}>`;
+    });
     if (/<[a-z][\s\S]*>/i.test(str)) {
         return str;
     }
@@ -68,7 +76,10 @@ function cuplikan(html, len = 120) {
         return clean.length > len ? clean.slice(0, len) + '…' : (clean || 'Pelajari materi selengkapnya →');
     }
 }
-function yt(u) { const m = String(u || '').match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe>` : '' }
+function yt(u) {
+    const m = String(u || '').match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/i);
+    return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` : '';
+}
 const TIPE = { native: 'Kuis di website', link: 'Link eksternal' };
 /* Header & footer sama di semua halaman agar tampilan konsisten */
 function shell(active, nav = []) {

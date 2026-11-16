@@ -90,25 +90,15 @@ header.top .wrap {
 
 nav {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 nav a {
-  padding: 8px 16px;
-  border-radius: 999px;
+  padding: 8px 12px;
   text-decoration: none;
-  color: var(--text-muted);
+  color: var(--text);
   font-weight: 600;
   font-size: 15px;
-}
-
-nav a:hover {
-  background: var(--bg);
-}
-
-nav a.on {
-  background: var(--primary);
-  color: #fff;
 }
 
 /* =========================
@@ -228,6 +218,25 @@ h2 {
   gap: 10px;
 }
 
+.card.clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card.clickable:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+
+.card.clickable:hover h3 {
+  color: var(--primary);
+}
+
+.card.clickable:active {
+  transform: translateY(0);
+}
+
 .card h3 {
   font-size: 18px;
   line-height: 1.3;
@@ -263,7 +272,7 @@ h2 {
 ========================= */
 
 .content-wrapper {
-  max-width: 880px;
+  max-width: 780px;
   margin: 0 auto;
   width: 100%;
 }
@@ -272,7 +281,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   gap: 12px;
 }
 
@@ -286,33 +295,34 @@ h2 {
 }
 
 .read {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 44px 48px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 0 36px;
   width: 100%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
 }
 
 .read-header {
   border-bottom: 1px solid var(--border);
   padding-bottom: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .read h1 {
-  font-size: clamp(22px, 4vw, 34px);
-  line-height: 1.28;
-  margin: 12px 0 12px;
+  font-size: clamp(24px, 4.5vw, 36px);
+  line-height: 1.25;
+  margin: 0 0 14px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  color: #0f172a;
 }
 
 .read-meta {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 13px;
+  gap: 14px;
+  font-size: 13.5px;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -360,10 +370,13 @@ h2 {
 
 .read iframe,
 .read .ql-video,
+.ql-editor iframe,
+.ql-editor .ql-video,
 .video {
-  aspect-ratio: 16 / 9;
-  width: 100%;
-  max-width: 100%;
+  aspect-ratio: 16 / 9 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
   border: 0;
   border-radius: 12px;
   margin: 20px 0;
@@ -463,6 +476,7 @@ h2 {
   color: var(--primary);
   text-decoration: none;
   transition: transform var(--transition);
+  cursor: pointer;
 }
 
 .back:hover {
@@ -711,6 +725,10 @@ footer {
     padding: 14px 16px;
   }
 
+  .ql-toolbar.ql-snow {
+    top: 57px;
+  }
+
   .mobile-toggle {
     display: inline-flex !important;
   }
@@ -893,28 +911,78 @@ textarea {
 ========================= */
 
 @media (max-width: 600px) {
-  nav a {
-    padding: 8px 11px;
-    font-size: 14px;
+  header.top .wrap {
+    height: 58px;
+    gap: 8px;
+  }
+
+  .brand {
+    font-size: 16px;
+    gap: 8px;
+  }
+
+  .logo {
+    width: 32px;
+    height: 32px;
   }
 
   .brand span {
-    display: none;
+    display: inline-block;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  nav {
+    gap: 2px;
+  }
+
+  nav a {
+    padding: 6px 8px;
+    font-size: 13.5px;
   }
 
   .wrap {
     padding: 0 14px;
   }
 
-  .read,
+  .read {
+    padding: 0 0 28px;
+    border: none;
+    box-shadow: none;
+  }
+
   .qbox {
     padding: 20px 16px;
     border-radius: 12px;
   }
 
+  .read-topbar {
+    margin-bottom: 18px;
+  }
+
   .read-body {
     font-size: 15.5px;
     line-height: 1.7;
+  }
+
+  /* Otomatis rapi di HP: semua gambar otomatis center dan tidak menjepit teks */
+  .read img,
+  .read img[style*="float"],
+  .read img[style*="margin"] {
+    float: none !important;
+    display: block !important;
+    margin: 18px auto !important;
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    clear: both !important;
+  }
+
+  .read pre,
+  .read table {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .read-nav {
@@ -975,28 +1043,95 @@ textarea {
   background: #f8fafc;
   font-family: inherit;
   padding: 10px 12px !important;
+  position: sticky;
+  top: 73px;
+  z-index: 4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.ql-toolbar.ql-snow button,
+.ql-toolbar.ql-snow .ql-picker-label {
+  border-radius: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+.ql-toolbar.ql-snow button:hover,
+.ql-toolbar.ql-snow .ql-picker-label:hover {
+  background: rgba(8, 145, 178, 0.12) !important;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-stroke,
+.ql-toolbar.ql-snow .ql-picker-label:hover .ql-stroke {
+  stroke: var(--primary) !important;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-fill,
+.ql-toolbar.ql-snow .ql-picker-label:hover .ql-fill {
+  fill: var(--primary) !important;
 }
 
 .ql-container.ql-snow {
   border-color: var(--border) !important;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
-  font-family: "Plus Jakarta Sans", sans-serif !important;
-  font-size: 15px !important;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif !important;
+  font-size: 16px !important;
   background: #ffffff;
 }
 
 .ql-editor {
-  min-height: 260px;
-  line-height: 1.7;
-  color: var(--text);
-  padding: 16px 20px !important;
+  min-height: 280px;
+  font-size: 16px !important;
+  line-height: 1.75 !important;
+  color: #1e293b !important;
+  padding: 20px 24px !important;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.ql-editor p {
+  margin-bottom: 16px;
+  line-height: 1.75;
+}
+
+.ql-editor h1 {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+  margin: 28px 0 12px !important;
+  color: var(--text) !important;
+}
+
+.ql-editor h2 {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  margin: 24px 0 10px !important;
+  color: var(--text) !important;
+}
+
+.ql-editor h3 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  margin: 20px 0 8px !important;
+  color: var(--text) !important;
+}
+
+.ql-editor pre.ql-syntax {
+  background: var(--bg) !important;
+  border-left: 4px solid var(--primary) !important;
+  padding: 14px 18px !important;
+  border-radius: 8px !important;
+  margin: 18px 0 !important;
+  color: #0f172a !important;
+  font: 15px/1.5 ui-monospace, monospace !important;
 }
 
 .ql-editor.ql-blank::before {
   font-family: "Plus Jakarta Sans", sans-serif;
   color: #94a3b8;
   font-style: normal;
-  left: 20px;
+  left: 24px;
 }
 
 /* Rich content styles for student read view & editor */
@@ -1011,23 +1146,262 @@ textarea {
 }
 
 .read ul,
-.read ol {
+.read ol,
+.ql-editor ul,
+.ql-editor ol {
   margin: 0 0 16px;
   padding-left: 24px;
 }
 
-.read li {
+.read li,
+.ql-editor li {
   margin-bottom: 6px;
   line-height: 1.6;
 }
 
-.read blockquote {
-  border-left: 4px solid var(--primary);
-  margin: 16px 0;
-  padding: 8px 16px;
-  background: rgba(37, 99, 235, 0.05);
-  border-radius: 0 8px 8px 0;
+.read blockquote,
+.ql-editor blockquote {
+  border-left: 4px solid var(--primary) !important;
+  margin: 16px 0 !important;
+  padding: 10px 16px !important;
+  background: rgba(8, 145, 178, 0.05) !important;
+  border-radius: 0 8px 8px 0 !important;
+  color: var(--text-muted) !important;
+  font-style: italic !important;
+}
+
+/* Quill Image & Media Resizer Styling */
+#editor-resizer .toolbar {
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid var(--border) !important;
+  background: #ffffff !important;
+}
+
+#editor-resizer .toolbar .group {
+  border-color: var(--border) !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+}
+
+#editor-resizer .toolbar .btn {
+  padding: 4px 8px !important;
+  font-size: 13px !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  border-radius: 0 !important;
+  font-weight: 600 !important;
+  line-height: 1.8 !important;
+  box-shadow: none !important;
+}
+
+#editor-resizer .toolbar .btn:hover {
+  background: #f1f5f9 !important;
+  color: var(--primary) !important;
+}
+
+#editor-resizer .handler {
+  border-radius: 2px !important;
+  background-color: var(--primary) !important;
+  border: 1.5px solid #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.read img[style*="float: left"],
+.ql-editor img[style*="float: left"] {
+  margin: 8px 18px 14px 0 !important;
+  display: inline-block !important;
+}
+
+.read img[style*="float: right"],
+.ql-editor img[style*="float: right"] {
+  margin: 8px 0 14px 18px !important;
+  display: inline-block !important;
+}
+
+.read img[style*="margin: auto"],
+.ql-editor img[style*="margin: auto"] {
+  margin: 18px auto !important;
+  display: block !important;
+}
+
+/* ===================================================
+   MODAL PRATINJAU SISWA (PREVIEW DIALOG)
+=================================================== */
+
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.preview-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preview-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.preview-dialog {
+  position: relative;
+  z-index: 2;
+  background: #f1f5f9;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  max-width: 95vw;
+  width: auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.preview-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.preview-toggle-group {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 999px;
+  gap: 4px;
+}
+
+.preview-toggle {
+  border: 0;
+  background: transparent;
+  padding: 7px 18px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
   color: var(--text-muted);
-  font-style: italic;
+  transition: all 0.2s ease;
+}
+
+.preview-toggle.active {
+  background: #ffffff;
+  color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.preview-close-btn {
+  background: #f1f5f9;
+  border: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: bold;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.preview-close-btn:hover {
+  background: #fee2e2;
+  color: var(--danger);
+  transform: scale(1.05);
+}
+
+.preview-viewport {
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  background: #cbd5e1;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: calc(92vh - 60px);
+}
+
+.preview-viewport.desktop {
+  width: 820px;
+}
+
+.preview-viewport.mobile {
+  width: 440px;
+}
+
+.preview-viewport.mobile .preview-frame {
+  width: 375px;
+  height: 640px;
+  max-height: calc(88vh - 90px);
+  border-radius: 36px;
+  border: 12px solid #0f172a;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #ffffff;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.preview-viewport.mobile .preview-frame::-webkit-scrollbar {
+  width: 5px;
+}
+
+.preview-viewport.mobile .preview-frame::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.25);
+  border-radius: 10px;
+}
+
+.preview-viewport.desktop .preview-frame {
+  width: 100%;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+.preview-viewport.mobile .read {
+  padding: 22px 18px !important;
+}
+
+.preview-viewport.desktop .read {
+  padding: 32px 36px !important;
+}
+
+.preview-viewport.mobile .read img,
+.preview-viewport.mobile .read img[style*="float"],
+.preview-viewport.mobile .read img[style*="margin"] {
+  float: none !important;
+  display: block !important;
+  margin: 18px auto !important;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  clear: both !important;
+}
+
+@media (max-width: 768px) {
+  .preview-viewport.desktop {
+    width: 90vw;
+  }
+  .preview-viewport.mobile {
+    width: 90vw;
+  }
 }
 

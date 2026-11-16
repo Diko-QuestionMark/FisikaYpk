@@ -23,6 +23,7 @@
       ]);
       const app = document.getElementById("app");
       let D, run;
+      let lastListPage = "#home";
       function setNav(k) {
         document
           .querySelectorAll("nav a")
@@ -32,11 +33,18 @@
       }
       function route() {
         D = Store.get();
-        const [k = "home", id] = location.hash.slice(1).split("/");
+        const currentHash = location.hash || "#home";
+        const [k = "home", id] = currentHash.slice(1).split("/");
         const page = k || "home";
+        if (!id) {
+          lastListPage = currentHash;
+        }
         setNav(page);
         scrollTo(0, 0);
         (({ home, materi, quiz })[page] || home)(id);
+      }
+      function goBack() {
+        location.hash = lastListPage || "#home";
       }
       function wrapMain() {
         const m = document.querySelector("main");
@@ -50,9 +58,8 @@
         return `<div class="grid">${l
           .map((x) => {
             if (t === "m") {
-              const hasVid = x.video || /<iframe|ql-video/i.test(x.isi || "");
               const preview = x.ringkasan || cuplikan(x.isi) || "Klik untuk membaca materi selengkapnya.";
-              return `<div class="card clickable" onclick="location.hash='#materi/${x.id}'"><div class="row" style="justify-content:space-between;align-items:center"><span class="tag">${esc(x.kategori || "Umum")}</span>${hasVid ? `<span class="tag" style="background:#fee2e2;color:#dc2626;font-size:11px">▶ Video</span>` : ""}</div><h3>${esc(x.judul)}</h3><p>${esc(preview)}</p><span class="btn sm" style="align-self:flex-start;pointer-events:none">Baca materi →</span></div>`;
+              return `<div class="card clickable" onclick="location.hash='#materi/${x.id}'"><h3>${esc(x.judul)}</h3><p>${esc(preview)}</p></div>`;
             }
             return `<div class="card clickable" onclick="${x.tipe === "native" ? `location.hash='#quiz/${x.id}'` : `window.open('${esc(x.link)}','_blank')`}"><span class="tag q">${TIPE[x.tipe] || "Link eksternal"}</span><h3>${esc(x.judul)}</h3><p>${esc(x.deskripsi)}</p><span class="btn sm" style="align-self:flex-start;pointer-events:none">${x.tipe === "native" ? `Kerjakan (${x.soal.length} soal) →` : `Buka kuis ↗`}</span></div>`;
           })
@@ -75,12 +82,10 @@
 
           a.innerHTML = `<div class="content-wrapper">
             <div class="read-topbar">
-              <a class="back" href="#materi">← Semua materi</a>
-              <span class="read-category-crumb">${esc(m.kategori || "Materi")}</span>
+              <a class="back" href="javascript:void(0)" onclick="goBack()">← Kembali</a>
             </div>
             <article class="read">
               <div class="read-header">
-                <span class="tag">${esc(m.kategori || "Umum")}</span>
                 <h1>${esc(m.judul)}</h1>
                 <div class="read-meta">
                   <span>⏱ ${menitBaca} menit baca</span>
