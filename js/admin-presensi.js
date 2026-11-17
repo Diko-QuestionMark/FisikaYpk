@@ -23,9 +23,9 @@ function pAbsen() {
             <span class="badge a">Alpa: ${a}</span>
             ${b ? `<span class="badge" style="background:var(--border);color:var(--text-muted)">Belum: ${b}</span>` : ""}
           </div>`;
-        const actions = `<button class="btn sm ghost" onclick="edit='${x.id}';draw()">Buka</button>
+        const actions = `<button class="btn sm ghost" onclick="edit='${x.id}';draw()" title="Buka / Ubah">${ICON_EDIT}</button>
           <button class="btn sm" onclick="expExcel('${x.id}')">Unduh Excel</button>
-          <button class="btn sm del" onclick="del('absen','${x.id}')">Hapus</button>`;
+          <button class="btn sm del" onclick="del('absen','${x.id}')" title="Hapus">${ICON_TRASH}</button>`;
         return uiItem(idx, content, actions);
       })
       .join("");
@@ -64,12 +64,13 @@ function pAbsen() {
   }
 
   return `<div class="panel">
-    <b>${A.id ? "Ubah" : "Tambah"} Presensi</b>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0">${A.id ? "Ubah" : "Tambah"} Presensi</h3>
+    </div>
     <div class="row" style="gap:14px;margin-top:10px">
       <div style="flex:1;min-width:200px">
         <label>Tanggal</label>
         <input type="date" id="a_tgl" value="${esc(A.tanggal)}" onchange="syncA();draw()">
-        <div class="hint">${fmtTanggal(A.tanggal)}</div>
       </div>
       <div style="flex:1;min-width:200px">
         <label>Pilih Kelas</label>
@@ -79,13 +80,14 @@ function pAbsen() {
         </select>
       </div>
     </div>
-    <label>Materi / Topik Pembelajaran</label>
-    <input id="a_topik" value="${esc(A.topik)}" placeholder="Tuliskan topik bahasan atau aktivitas pertemuan ini">
+    <div style="margin-top:10px">
+      <label>Topik Pembelajaran</label>
+      <input id="a_topik" value="${esc(A.topik)}" placeholder="Topik bahasan">
+    </div>
 
     <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px">
-      <div style="margin-bottom:12px">
-        <b>Daftar Kehadiran Siswa ${A.kelas ? "Kelas " + esc(A.kelas) + " (" + A.siswa.length + " siswa)" : ""}</b>
-        <div class="hint">Pilih status kehadiran: H (Hadir), S (Sakit), I (Izin), atau A (Alpa)</div>
+      <div style="margin-bottom:12px;font-weight:700">
+        Kehadiran Siswa ${A.kelas ? "Kelas " + esc(A.kelas) + " (" + A.siswa.length + " siswa)" : ""}
       </div>
 
       <div style="display:flex;flex-direction:column;gap:8px" id="siswa_list">
@@ -106,21 +108,24 @@ function pAbsen() {
               <button type="button" class="status-btn a ${s.status === 'Alpa' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Alpa')">A</button>
             </div>
             <div style="width:200px">
-              <input data-idx="${idx}" data-field="catatan" value="${esc(s.catatan || '')}" placeholder="Keterangan / Catatan" style="padding:6px 10px;font-size:13px;background:var(--surface)">
+              <input data-idx="${idx}" data-field="catatan" value="${esc(s.catatan || '')}" placeholder="Catatan" style="padding:6px 10px;font-size:13px;background:var(--surface)">
             </div>
           </div>
         `,
                 )
                 .join("")
             : !A.kelas
-              ? `<div class="empty" style="padding:24px">Silakan pilih kelas terlebih dahulu untuk memuat daftar siswa.</div>`
-              : `<div class="empty" style="padding:24px">Kelas <b>${esc(A.kelas)}</b> belum memiliki data siswa.<br><span class="hint">Silakan masukkan daftar nama siswa di menu <b>👥 Data Siswa</b> terlebih dahulu.</span></div>`
+              ? `<div class="empty" style="padding:24px">Pilih kelas terlebih dahulu.</div>`
+              : `<div class="empty" style="padding:24px">Kelas <b>${esc(A.kelas)}</b> belum memiliki data siswa.</div>`
         }
       </div>
     </div>
 
-    <div style="margin-top:24px;border-top:1px solid var(--border)">
-      ${uiFormActions("sA()", "edit=null;A=null;draw()", "Simpan Presensi")}
+    <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
+      <div class="row" style="gap:8px">
+        <button class="btn" onclick="sA()">Simpan</button>
+        <button class="btn ghost" onclick="edit=null;A=null;draw()">Batal</button>
+      </div>
     </div>
   </div>`;
 }

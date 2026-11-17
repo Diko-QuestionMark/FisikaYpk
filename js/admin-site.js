@@ -1,25 +1,41 @@
 /* Modul Pengaturan Website & Cadangan Data */
 function pSite() {
   const s = D.site;
-  return `<div class="panel"><b>Pengaturan website</b>${[
-    ["nama", "Nama website"],
-    ["tagline", "Judul besar halaman Home"],
-    ["deskripsi", "Deskripsi Home"],
-    ["footer", "Teks footer"],
-    ["pin", "Kata sandi masuk guru"],
-  ]
-    .map(
-      ([k, l]) =>
-        `<label>${l}</label><input id="s_${k}" value="${esc(s[k] || "")}">`,
-    )
-    .join("")}
-    <div class="row" style="margin-top:18px"><button class="btn" onclick="['nama','tagline','deskripsi','footer','pin'].forEach(k=>D.site[k]=$('#s_'+k).value.trim());save()">Simpan</button></div>
+  return `<div class="panel">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0">Pengaturan Website</h3>
+    </div>
+    ${[
+      ["nama", "Nama Website"],
+      ["tagline", "Judul Besar Halaman Beranda"],
+      ["deskripsi", "Deskripsi Beranda"],
+      ["footer", "Teks Footer"],
+      ["pin", "Kata Sandi Masuk Guru"],
+    ]
+      .map(
+        ([k, l]) =>
+          `<label>${l}</label><input id="s_${k}" value="${esc(s[k] || "")}">`,
+      )
+      .join("")}
+    <div class="row" style="margin-top:20px;gap:8px">
+      <button class="btn" onclick="['nama','tagline','deskripsi','footer','pin'].forEach(k=>D.site[k]=$('#s_'+k).value.trim());save()">Simpan</button>
+      <button class="btn ghost" onclick="draw()">Batal</button>
+    </div>
   </div>`;
 }
 
 function pData() {
-  return `<div class="panel"><b>Cadangan data</b><p class="sub">Penyimpanan lokal hanya ada di browser ini. Unduh cadangan untuk memindahkan data ke komputer lain.</p>
-    <div class="row"><button class="btn" onclick="exp()">Unduh cadangan (.json)</button><label class="btn ghost" style="margin:0;cursor:pointer">Pulihkan dari file<input type="file" accept=".json" hidden onchange="imp(this.files[0])"></label><button class="btn del" onclick="if(confirm('Kosongkan semua data? Semua data yang tersimpan akan dihapus.')){Store.reset();D=Store.get();draw()}">Kosongkan data</button></div>
+  return `<div class="panel">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0">Cadangan Data</h3>
+    </div>
+    <p class="sub" style="margin-bottom:16px">Penyimpanan lokal hanya ada di browser ini. Unduh cadangan untuk memindahkan data ke komputer lain.</p>
+    <div class="row" style="gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="exp()">Unduh Cadangan (.json)</button>
+      <label class="btn ghost" style="margin:0;cursor:pointer">Pulihkan dari File<input type="file" accept=".json" hidden onchange="imp(this.files[0])"></label>
+      <button class="btn ghost" onclick="if(confirm('Muat ulang data contoh (seed)? Data materi, kuis, kelas, dan presensi contoh akan diisi ulang.')){initSeedData(true);D=Store.get();draw();toast('Data contoh berhasil dimuat!')}">Muat Data Contoh</button>
+      <button class="btn del" onclick="if(confirm('Kosongkan semua data? Semua data yang tersimpan akan dihapus.')){Store.reset();D=Store.get();draw()}">Kosongkan Data</button>
+    </div>
   </div>`;
 }
 

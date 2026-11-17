@@ -1,17 +1,11 @@
 /* Penyimpanan & utilitas bersama (dipakai index.html dan admin.html) */
 const KEY = 'fisika_media_v3';
-const SEED = {
-    site: { nama: 'FisikaKu', tagline: 'Belajar fisika jadi lebih mudah, runtut, dan menyenangkan.', deskripsi: 'Media pembelajaran fisika interaktif: baca materi, lalu uji pemahamanmu lewat kuis.', footer: 'Media Pembelajaran Fisika', pin: 'FahrulPolman' },
-    daftar_kelas: [],
-    materi: [],
-    quiz: [],
-    absen: [],
-    kelas_siswa: {}
-};
 const Store = {
     get() {
         try {
-            const d = JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED);
+            const raw = localStorage.getItem(KEY);
+            const fallback = (typeof SEED_DATA !== 'undefined') ? structuredClone(SEED_DATA) : { site: { nama: 'FisikaKu', pin: 'FahrulPolman' }, materi: [], quiz: [], absen: [], daftar_kelas: [], kelas_siswa: {} };
+            const d = JSON.parse(raw) || fallback;
             d.site = d.site || {};
             d.site.pin = d.site.pin || 'FahrulPolman';
             d.materi = d.materi || [];
@@ -21,7 +15,7 @@ const Store = {
             d.kelas_siswa = d.kelas_siswa || {};
             return d;
         } catch (e) {
-            return structuredClone(SEED);
+            return (typeof SEED_DATA !== 'undefined') ? structuredClone(SEED_DATA) : { site: { nama: 'FisikaKu', pin: 'FahrulPolman' }, materi: [], quiz: [], absen: [], daftar_kelas: [], kelas_siswa: {} };
         }
     },
     save(d) { localStorage.setItem(KEY, JSON.stringify(d)) },
