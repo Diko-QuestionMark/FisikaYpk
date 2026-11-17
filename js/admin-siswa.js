@@ -52,23 +52,34 @@ function pSiswa() {
 
   if (!curMasterKls) {
     const items = klsList
-      .map((k, idx) => {
+      .map((k) => {
         const count = (D.kelas_siswa[k] || []).length;
-        return uiItem(
-          idx,
-          `<b>Kelas ${esc(k)}</b><div class="hint">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>`,
-          `<button class="btn sm ghost" onclick="curMasterKls='${esc(k)}';draw()" title="Edit Siswa">${ICON_EDIT}</button>
-           <button class="btn sm del" onclick="hapusKelas('${esc(k)}')" title="Hapus Kelas">${ICON_TRASH}</button>`,
-        );
+        return `
+          <div class="crud-card">
+            <div class="crud-card-left">
+              <h3 class="crud-card-title">Kelas ${esc(k)}</h3>
+              <div class="crud-card-sub">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>
+            </div>
+            <div class="crud-actions">
+              <button class="crud-btn-icon" onclick="curMasterKls='${esc(k)}';draw()" title="Edit Siswa">${ICON_EDIT}</button>
+              <button class="crud-btn-icon del" onclick="hapusKelas('${esc(k)}')" title="Hapus Kelas">${ICON_TRASH}</button>
+            </div>
+          </div>`;
       })
       .join("");
 
-    return uiPanel({
-      headerLeft: `<b>Daftar (${klsList.length})</b>`,
-      headerRight: `<button class="btn sm" onclick="tambahKelas()">${ICON_PLUS}Tambah</button>`,
-      content: items,
-      emptyText: "Belum ada kelas. Klik tombol <b>Tambah</b> untuk menambahkan.",
-    });
+    return `
+      <div class="crud-header">
+        <div class="crud-search-wrap">
+          ${ICON_SEARCH}
+          <input type="text" class="crud-search-input" placeholder="Cari nama kelas..." oninput="onCrudSearch(this.value)" />
+        </div>
+        <button class="crud-btn-add" onclick="tambahKelas()">${ICON_PLUS} Tambah Kelas</button>
+      </div>
+      <div class="crud-card-list">
+        ${items || `<div class="crud-empty">Belum ada kelas. Klik tombol <b>+ Tambah Kelas</b> untuk menambahkan.</div>`}
+      </div>
+    `;
   }
 
   const list = D.kelas_siswa[curMasterKls] || [];

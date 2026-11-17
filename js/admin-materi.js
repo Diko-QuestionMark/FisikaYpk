@@ -4,7 +4,7 @@ let quillMateri = null;
 function pMateri() {
   if (!edit) {
     quillMateri = null;
-    return uiCrudList(D.materi, "materi", (x) => cuplikan(x.isi, 60));
+    return uiCrudList(D.materi, "materi", (x) => hitungWaktuBaca(x.isi), "Daftar Materi");
   }
 
   const m = edit === "new"

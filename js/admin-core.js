@@ -1,7 +1,8 @@
 /* Core State, UI Helpers, Auth, & Routing Admin */
-const ICON_PLUS = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:5px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
-const ICON_EDIT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
-const ICON_TRASH = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+const ICON_PLUS = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+const ICON_EDIT = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
+const ICON_TRASH = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+const ICON_SEARCH = `<svg class="crud-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
 
 let D = Store.get(),
   tab = "materi",
@@ -122,7 +123,17 @@ function draw() {
   if (typeof afterDraw === "function") afterDraw();
 }
 
-/* Helper Komponen UI Bersama */
+/* Helper Komponen UI Bersama - Modern Clean Cards (Gambar 2 Reference) */
+function hitungWaktuBaca(htmlOrText) {
+  if (!htmlOrText) return "1 menit baca";
+  const div = document.createElement("div");
+  div.innerHTML = htmlOrText;
+  const text = (div.textContent || div.innerText || "").trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  const menit = Math.max(1, Math.ceil(words / 180));
+  return `${menit} menit baca`;
+}
+
 function uiPanel({ headerLeft, headerRight = "", content = "", emptyText = "Belum ada data." }) {
   return `<div class="panel">
     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -134,31 +145,74 @@ function uiPanel({ headerLeft, headerRight = "", content = "", emptyText = "Belu
 }
 
 function uiItem(idx, contentHtml, actionsHtml) {
-  return `<div class="item">
-    <div style="display:flex;align-items:flex-start;gap:12px">
-      <span style="font-size:15px;color:var(--text-muted);font-weight:700;min-width:24px;line-height:1.4">${idx + 1}.</span>
-      <div>${contentHtml}</div>
-    </div>
-    <div class="row">${actionsHtml}</div>
+  return `<div class="crud-card">
+    <div class="crud-card-left">${contentHtml}</div>
+    <div class="crud-actions">${actionsHtml}</div>
   </div>`;
 }
 
+function onCrudSearch(keyword) {
+  const q = (keyword || "").toLowerCase().trim();
+  const listEl = document.querySelector(".crud-card-list");
+  if (!listEl) return;
+  const cards = listEl.querySelectorAll(".crud-card");
+  let visible = 0;
+  cards.forEach((c) => {
+    const text = c.textContent.toLowerCase();
+    const match = !q || text.includes(q);
+    c.style.display = match ? "flex" : "none";
+    if (match) visible++;
+  });
+  let emptyEl = document.getElementById("crud_search_empty");
+  if (!emptyEl && listEl) {
+    emptyEl = document.createElement("div");
+    emptyEl.id = "crud_search_empty";
+    emptyEl.className = "crud-empty";
+    listEl.appendChild(emptyEl);
+  }
+  if (emptyEl) {
+    emptyEl.textContent = `Tidak ditemukan hasil pencarian "${keyword}"`;
+    emptyEl.style.display = visible === 0 && cards.length > 0 ? "block" : "none";
+  }
+}
+
 function uiCrudList(arr, type, sub) {
-  const items = arr
-    .map((x, idx) =>
-      uiItem(
-        idx,
-        `<b>${esc(x.judul)}</b><div class="hint">${esc(sub(x))}</div>`,
-        `<button class="btn sm ghost" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
-         <button class="btn sm del" onclick="del('${type}','${x.id}')" title="Hapus">${ICON_TRASH}</button>`,
-      ),
+  const placeholders = {
+    materi: "Cari materi fisika...",
+    quiz: "Cari kuis...",
+    absen: "Cari presensi...",
+    siswa: "Cari kelas atau siswa...",
+  };
+  const ph = placeholders[type] || "Cari data...";
+
+  const cards = (arr || [])
+    .map(
+      (x) => `
+    <div class="crud-card">
+      <div class="crud-card-left">
+        <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
+        <div class="crud-card-sub">${esc(sub ? sub(x) : "")}</div>
+      </div>
+      <div class="crud-actions">
+        <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
+        <button class="crud-btn-icon del" onclick="del('${type}','${x.id}')" title="Hapus">${ICON_TRASH}</button>
+      </div>
+    </div>`,
     )
     .join("");
-  return uiPanel({
-    headerLeft: `<b>Daftar (${arr.length})</b>`,
-    headerRight: `<button class="btn sm" onclick="edit='new';draw()">${ICON_PLUS}Tambah</button>`,
-    content: items,
-  });
+
+  return `
+    <div class="crud-header">
+      <div class="crud-search-wrap">
+        ${ICON_SEARCH}
+        <input type="text" class="crud-search-input" placeholder="${ph}" oninput="onCrudSearch(this.value)" autofocus />
+      </div>
+      <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
+    </div>
+    <div class="crud-card-list">
+      ${cards || `<div class="crud-empty">Belum ada data. Silakan klik tombol <b>+ Tambah</b> untuk membuat baru.</div>`}
+    </div>
+  `;
 }
 
 function del(t, id) {

@@ -220,7 +220,10 @@ h2 {
 
 .card.clickable {
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .card.clickable:hover {
@@ -445,7 +448,11 @@ h2 {
 }
 
 .quiz-cta {
-  background: linear-gradient(135deg, rgba(8, 145, 178, 0.08) 0%, rgba(8, 145, 178, 0.03) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(8, 145, 178, 0.08) 0%,
+    rgba(8, 145, 178, 0.03) 100%
+  );
   border: 1.5px solid rgba(8, 145, 178, 0.25);
   border-radius: var(--radius);
   padding: 22px 24px;
@@ -639,7 +646,9 @@ footer {
   border-radius: 9px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .sidebar-item:hover {
@@ -684,21 +693,14 @@ footer {
 }
 
 .admin-topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 18px 32px;
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.admin-topbar h2 {
-  margin: 0;
+  display: none;
 }
 
 .admin-content {
-  padding: 28px 32px;
+  padding: 32px 36px;
   flex: 1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Sidebar responsive */
@@ -722,7 +724,19 @@ footer {
   }
 
   .admin-topbar {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
     padding: 14px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  .admin-topbar h2 {
+    margin: 0;
+    font-size: 18px;
   }
 
   .ql-toolbar.ql-snow {
@@ -912,6 +926,210 @@ textarea {
 .btn-add-soal:hover {
   border-color: var(--primary);
   background: rgba(8, 145, 178, 0.04);
+}
+
+/* ===================================================
+   ADMIN CRUD LIST - MODERN 2-COLUMN CARDS WITH SEARCH
+=================================================== */
+
+.crud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+}
+
+.crud-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 440px;
+  min-width: 240px;
+}
+
+.crud-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crud-search-input {
+  width: 100%;
+  padding: 11px 16px 11px 44px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.crud-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.12);
+}
+
+.crud-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.crud-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.crud-card-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .crud-card-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.crud-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+}
+
+.crud-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.crud-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 0;
+  word-break: break-word;
+}
+
+.crud-card-sub {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.crud-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.crud-btn-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.crud-btn-icon:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(8, 145, 178, 0.06);
+}
+
+.crud-btn-icon.del:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.crud-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14.5px;
+  padding: 11px 22px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.25);
+  flex-shrink: 0;
+}
+
+.crud-btn-add:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.35);
+}
+
+.crud-empty {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 42px 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14.5px;
+}
+
+@media (max-width: 640px) {
+  .crud-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .crud-search-wrap {
+    max-width: 100%;
+  }
+  .crud-btn-add {
+    justify-content: center;
+  }
+  .crud-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 18px;
+    gap: 14px;
+  }
+  .crud-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 .hint {
@@ -1237,7 +1455,9 @@ textarea {
   border-radius: 8px !important;
   margin: 18px 0 !important;
   color: #0f172a !important;
-  font: 15px/1.5 ui-monospace, monospace !important;
+  font:
+    15px/1.5 ui-monospace,
+    monospace !important;
 }
 
 .ql-editor.ql-blank::before {
@@ -1517,4 +1737,3 @@ textarea {
     width: 90vw;
   }
 }
-

@@ -10,6 +10,7 @@ function pQuiz() {
       (x) =>
         (TIPE[x.tipe] || "Link eksternal") +
         (x.tipe === "native" ? ` · ${x.soal.length} soal` : ""),
+      "Daftar Kuis",
     );
   }
 

@@ -8,41 +8,52 @@ function pAbsen() {
       (x) => filterKelas === "Semua" || x.kelas === filterKelas,
     );
     const items = list
-      .map((x, idx) => {
+      .map((x) => {
         const h = x.siswa.filter((s) => s.status === "Hadir").length;
         const s = x.siswa.filter((s) => s.status === "Sakit").length;
         const i = x.siswa.filter((s) => s.status === "Izin").length;
         const a = x.siswa.filter((s) => s.status === "Alpa").length;
         const b = x.siswa.filter((s) => !s.status).length;
-        const content = `<b>${esc(x.kelas)} · ${esc(fmtTanggal(x.tanggal))}</b>
-          <div class="hint">Topik: ${esc(x.topik || "Umum")} · Total: ${x.siswa.length} siswa</div>
-          <div class="row" style="margin-top:6px;gap:6px">
-            <span class="badge h">Hadir: ${h}</span>
-            <span class="badge s">Sakit: ${s}</span>
-            <span class="badge i">Izin: ${i}</span>
-            <span class="badge a">Alpa: ${a}</span>
-            ${b ? `<span class="badge" style="background:var(--border);color:var(--text-muted)">Belum: ${b}</span>` : ""}
+        return `
+          <div class="crud-card">
+            <div class="crud-card-left">
+              <h3 class="crud-card-title">Kelas ${esc(x.kelas)} · ${esc(fmtTanggal(x.tanggal))}</h3>
+              <div class="crud-card-sub">Topik: ${esc(x.topik || "Umum")} · Total ${x.siswa.length} siswa</div>
+              <div class="row" style="margin-top:6px;gap:6px">
+                <span class="badge h">Hadir: ${h}</span>
+                <span class="badge s">Sakit: ${s}</span>
+                <span class="badge i">Izin: ${i}</span>
+                <span class="badge a">Alpa: ${a}</span>
+                ${b ? `<span class="badge" style="background:#f1f5f9;color:#64748b">Belum: ${b}</span>` : ""}
+              </div>
+            </div>
+            <div class="crud-actions">
+              <button class="btn sm ghost" onclick="expExcel('${x.id}')" style="display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:8px 14px;border-radius:10px;font-size:13px" title="Unduh Rekap Excel">📥 Unduh Excel</button>
+              <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Buka / Ubah">${ICON_EDIT}</button>
+              <button class="crud-btn-icon del" onclick="del('absen','${x.id}')" title="Hapus">${ICON_TRASH}</button>
+            </div>
           </div>`;
-        const actions = `<button class="btn sm ghost" onclick="edit='${x.id}';draw()" title="Buka / Ubah">${ICON_EDIT}</button>
-          <button class="btn sm" onclick="expExcel('${x.id}')">Unduh Excel</button>
-          <button class="btn sm del" onclick="del('absen','${x.id}')" title="Hapus">${ICON_TRASH}</button>`;
-        return uiItem(idx, content, actions);
       })
       .join("");
 
-    const filterHeader = `<div class="row" style="gap:10px;align-items:center">
-      <b>Daftar (${list.length})</b>
-      <select onchange="filterKelas=this.value;draw()" style="width:auto;padding:5px 10px;font-size:13px">
-        <option value="Semua" ${filterKelas === "Semua" ? "selected" : ""}>Semua Kelas</option>
-        ${getKelasList().map((k) => `<option value="${k}" ${filterKelas === k ? "selected" : ""}>${k}</option>`).join("")}
-      </select>
-    </div>`;
-
-    return uiPanel({
-      headerLeft: filterHeader,
-      headerRight: `<button class="btn sm" onclick="edit='new';draw()">${ICON_PLUS}Tambah</button>`,
-      content: items,
-    });
+    return `
+      <div class="crud-header">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap">
+          <div class="crud-search-wrap">
+            ${ICON_SEARCH}
+            <input type="text" class="crud-search-input" placeholder="Cari presensi (kelas/topik)..." oninput="onCrudSearch(this.value)" />
+          </div>
+          <select onchange="filterKelas=this.value;draw()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;cursor:pointer">
+            <option value="Semua" ${filterKelas === "Semua" ? "selected" : ""}>Semua Kelas</option>
+            ${getKelasList().map((k) => `<option value="${k}" ${filterKelas === k ? "selected" : ""}>Kelas ${k}</option>`).join("")}
+          </select>
+        </div>
+        <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
+      </div>
+      <div class="crud-card-list">
+        ${items || `<div class="crud-empty">Belum ada catatan presensi. Klik tombol <b>+ Tambah</b> untuk membuat baru.</div>`}
+      </div>
+    `;
   }
 
   if (!A || A._for !== edit) {
@@ -91,11 +102,10 @@ function pAbsen() {
       </div>
 
       <div style="display:flex;flex-direction:column;gap:8px" id="siswa_list">
-        ${
-          A.siswa.length
-            ? A.siswa
-                .map(
-                  (s, idx) => `
+        ${A.siswa.length
+      ? A.siswa
+        .map(
+          (s, idx) => `
           <div class="item" style="padding:10px 12px;gap:12px;background:var(--bg);border-radius:8px;border-bottom:none">
             <div style="flex:1;min-width:180px;display:flex;align-items:center;gap:10px">
               <span style="font-size:13px;color:var(--text-muted);font-weight:700;width:24px;text-align:right">${idx + 1}.</span>
@@ -112,12 +122,12 @@ function pAbsen() {
             </div>
           </div>
         `,
-                )
-                .join("")
-            : !A.kelas
-              ? `<div class="empty" style="padding:24px">Pilih kelas terlebih dahulu.</div>`
-              : `<div class="empty" style="padding:24px">Kelas <b>${esc(A.kelas)}</b> belum memiliki data siswa.</div>`
-        }
+        )
+        .join("")
+      : !A.kelas
+        ? `<div class="empty" style="padding:24px">Pilih kelas terlebih dahulu.</div>`
+        : `<div class="empty" style="padding:24px">Kelas <b>${esc(A.kelas)}</b> belum memiliki data siswa.</div>`
+    }
       </div>
     </div>
 
@@ -220,25 +230,25 @@ function expExcel(id) {
           <th style="width:220px">Keterangan / Catatan</th>
         </tr>
         ${s.siswa
-          .map((item, idx) => {
-            const stClass =
-              item.status === "Hadir"
-                ? "hadir"
-                : item.status === "Sakit"
-                  ? "sakit"
-                  : item.status === "Izin"
-                    ? "izin"
-                    : item.status === "Alpa"
-                      ? "alpa"
-                      : "center";
-            return `<tr>
+      .map((item, idx) => {
+        const stClass =
+          item.status === "Hadir"
+            ? "hadir"
+            : item.status === "Sakit"
+              ? "sakit"
+              : item.status === "Izin"
+                ? "izin"
+                : item.status === "Alpa"
+                  ? "alpa"
+                  : "center";
+        return `<tr>
             <td class="center">${idx + 1}</td>
             <td>${esc(item.nama)}</td>
             <td class="${stClass}">${esc(item.status || "-")}</td>
             <td>${esc(item.catatan || "")}</td>
           </tr>`;
-          })
-          .join("")}
+      })
+      .join("")}
       </table>
     </body>
     </html>

@@ -9,7 +9,10 @@
       rel="stylesheet"
     />
     <link rel="icon" type="image/png" href="aset/YPKLOGO.png" />
-    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -59,7 +62,10 @@
         return `<div class="grid">${l
           .map((x) => {
             if (t === "m") {
-              const preview = x.ringkasan || cuplikan(x.isi) || "Klik untuk membaca materi selengkapnya.";
+              const preview =
+                x.ringkasan ||
+                cuplikan(x.isi) ||
+                "Klik untuk membaca materi selengkapnya.";
               return `<div class="card clickable" onclick="location.hash='#materi/${x.id}'"><h3>${esc(x.judul)}</h3><p>${esc(preview)}</p></div>`;
             }
             return `<div class="card clickable" onclick="${x.tipe === "native" ? `location.hash='#quiz/${x.id}'` : `window.open('${esc(x.link)}','_blank')`}"><span class="tag q">${TIPE[x.tipe] || "Link eksternal"}</span><h3>${esc(x.judul)}</h3><p>${esc(x.deskripsi)}</p><span class="btn sm" style="align-self:flex-start;pointer-events:none">${x.tipe === "native" ? `Kerjakan (${x.soal.length} soal) →` : `Buka kuis ↗`}</span></div>`;
@@ -72,14 +78,19 @@
         if (m) {
           const idx = D.materi.findIndex((x) => x.id === id);
           const prev = idx > 0 ? D.materi[idx - 1] : null;
-          const next = idx >= 0 && idx < D.materi.length - 1 ? D.materi[idx + 1] : null;
+          const next =
+            idx >= 0 && idx < D.materi.length - 1 ? D.materi[idx + 1] : null;
 
-          const textOnly = (new DOMParser().parseFromString(m.isi || "", "text/html").body.textContent || "").trim();
+          const textOnly = (
+            new DOMParser().parseFromString(m.isi || "", "text/html").body
+              .textContent || ""
+          ).trim();
           const wordCount = textOnly ? textOnly.split(/\s+/).length : 0;
           const menitBaca = Math.max(1, Math.ceil(wordCount / 180));
 
           const relatedQuiz = D.quiz.find((q) => q.tipe === "native");
-          const legacyVid = (m.video && !(m.isi || "").includes(m.video)) ? yt(m.video) : "";
+          const legacyVid =
+            m.video && !(m.isi || "").includes(m.video) ? yt(m.video) : "";
 
           a.innerHTML = `<div class="content-wrapper">
             <div class="read-topbar">
@@ -101,7 +112,9 @@
                   ${prev ? `<a class="read-nav-btn prev" href="#materi/${prev.id}"><span class="nav-label">← Sebelumnya</span><span class="nav-title">${esc(prev.judul)}</span></a>` : `<div></div>`}
                   ${next ? `<a class="read-nav-btn next" href="#materi/${next.id}"><span class="nav-label">Selanjutnya →</span><span class="nav-title">${esc(next.judul)}</span></a>` : `<div></div>`}
                 </div>
-                ${relatedQuiz ? `
+                ${
+                  relatedQuiz
+                    ? `
                   <div class="quiz-cta">
                     <div class="quiz-cta-text">
                       <b>Uji Pemahaman Materi</b>
@@ -109,7 +122,9 @@
                     </div>
                     <a class="btn" href="#quiz/${relatedQuiz.id}">Mulai Kuis →</a>
                   </div>
-                ` : ""}
+                `
+                    : ""
+                }
               </div>
             </article>
           </div>`;
