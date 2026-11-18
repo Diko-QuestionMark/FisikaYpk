@@ -1,5 +1,47 @@
 /* Modul Materi Pembelajaran dengan Quill.js Rich Text Editor */
 let quillMateri = null;
+let livePreviewMode = "mobile";
+
+function setLivePreviewMode(mode) {
+  livePreviewMode = mode;
+  const stage = document.getElementById("live_preview_stage");
+  if (stage) {
+    stage.className = `live-preview-stage ${mode}`;
+  }
+  const btnM = document.getElementById("btn_live_mobile");
+  const btnD = document.getElementById("btn_live_desktop");
+  if (btnM) btnM.classList.toggle("active", mode === "mobile");
+  if (btnD) btnD.classList.toggle("active", mode === "desktop");
+}
+
+function updateLivePreview() {
+  const judulInput = document.getElementById("j");
+  const prevJudul = document.getElementById("prev_judul");
+  const prevWaktu = document.getElementById("prev_waktu");
+  const prevBody = document.getElementById("prev_body");
+  if (!prevJudul || !prevBody) return;
+
+  const judul = (judulInput?.value || "").trim() || "Judul Materi Belum Diisi";
+  prevJudul.textContent = judul;
+
+  let html = "";
+  if (quillMateri) {
+    html = quillMateri.root.innerHTML;
+  }
+  const textOnly = (new DOMParser().parseFromString(html || "", "text/html").body.textContent || "").trim();
+  const words = textOnly ? textOnly.split(/\s+/).filter(Boolean).length : 0;
+  const menit = Math.max(1, Math.ceil(words / 180));
+  if (prevWaktu) {
+    prevWaktu.textContent = `⏱ ${menit} menit baca`;
+  }
+
+  const hasMedia = quillMateri?.root.querySelector("img, iframe");
+  if (!textOnly && !hasMedia) {
+    prevBody.innerHTML = '<p style="color:#94a3b8;font-style:italic">Mulai mengetik di editor sebelah kiri untuk melihat tampilan langsung...</p>';
+  } else {
+    prevBody.innerHTML = fmt(html);
+  }
+}
 
 function pMateri() {
   if (!edit) {
@@ -14,24 +56,61 @@ function pMateri() {
         isi: "",
       });
 
-  return `<div class="panel">
-    <b>${m.id ? "Ubah" : "Tambah"} materi</b>
-    <div style="margin-top:14px">
-      <label>Judul Materi</label>
-      <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hukum Newton tentang Gerak">
-    </div>
-    <label style="margin-top:14px">Isi materi</label>
-    <div class="quill-wrapper" style="margin-bottom:16px">
-      <div id="quill_editor"></div>
-    </div>
-    <div class="row" style="margin-top:20px;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-      <div class="row" style="gap:8px">
-        <button class="btn" onclick="sM('${m.id || ""}')">Simpan</button>
-        <button class="btn ghost" onclick="edit=null;quillMateri=null;draw()">Batal</button>
+  return `
+    <div class="materi-editor-layout">
+      <!-- Kolom Kiri: Editor Form -->
+      <div class="materi-editor-pane">
+        <div class="panel" style="margin-bottom:0">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h3 style="margin:0">${m.id ? "Ubah" : "Tambah"} Materi</h3>
+          </div>
+          <div>
+            <label>Judul Materi</label>
+            <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hukum Newton tentang Gerak" oninput="updateLivePreview()">
+          </div>
+          <label style="margin-top:14px">Isi Materi</label>
+          <div class="quill-wrapper" style="margin-bottom:16px">
+            <div id="quill_editor"></div>
+          </div>
+          <div class="row" style="margin-top:20px;gap:10px">
+            <button class="btn" onclick="sM('${m.id || ""}')">Simpan Materi</button>
+            <button class="btn ghost" onclick="edit=null;quillMateri=null;draw()">Batal</button>
+          </div>
+        </div>
       </div>
-      <button type="button" class="btn ghost" onclick="openPreviewMateri()">Pratinjau</button>
+
+      <!-- Kolom Kanan: Live Preview Frame Siswa -->
+      <div class="materi-preview-pane">
+        <div class="preview-card-sticky">
+          <div class="preview-header-bar" style="justify-content:flex-end">
+            <div class="preview-toggle-group">
+              <button type="button" class="preview-toggle ${livePreviewMode === "mobile" ? "active" : ""}" id="btn_live_mobile" onclick="setLivePreviewMode('mobile')">📱 Mode HP</button>
+              <button type="button" class="preview-toggle ${livePreviewMode === "desktop" ? "active" : ""}" id="btn_live_desktop" onclick="setLivePreviewMode('desktop')">💻 Mode Laptop</button>
+            </div>
+          </div>
+          <div class="live-preview-stage ${livePreviewMode}" id="live_preview_stage">
+            <div class="live-preview-screen">
+              <div class="device-notch"></div>
+              <div class="device-screen-scroll">
+                <article class="read">
+                  <div class="read-header">
+                    <h1 id="prev_judul">${esc(m.judul || "Judul Materi")}</h1>
+                    <div class="read-meta">
+                      <span id="prev_waktu">⏱ ${hitungWaktuBaca(m.isi)}</span>
+                    </div>
+                  </div>
+                  <div class="read-body" id="prev_body">
+                    ${m.isi ? fmt(m.isi) : '<p style="color:#94a3b8;font-style:italic">Mulai mengetik di editor sebelah kiri untuk melihat tampilan langsung...</p>'}
+                  </div>
+                </article>
+              </div>
+              <div class="device-home-bar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>`;
+  `;
 }
 
 function initQuillMateri() {
@@ -122,6 +201,12 @@ function initQuillMateri() {
 
   // Pasang petunjuk (tooltip) bahasa Indonesia di setiap tombol toolbar saat di-hover
   setupQuillTooltips(quillMateri.getModule("toolbar")?.container || container.previousElementSibling);
+
+  // Pasang live update untuk kolom pratinjau di samping
+  quillMateri.on("text-change", () => {
+    updateLivePreview();
+  });
+  setTimeout(updateLivePreview, 60);
 }
 
 function setupQuillTooltips(toolbar) {
