@@ -1,0 +1,150 @@
+/* =====================================================
+   PREVIEW.CSS — Modal Pratinjau Siswa (Dialog HP/Laptop)
+   ===================================================== */
+
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.preview-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preview-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.preview-dialog {
+  position: relative;
+  z-index: 2;
+  background: #f1f5f9;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  max-width: 95vw;
+  width: auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.preview-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.preview-close-btn {
+  background: #f1f5f9;
+  border: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: bold;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.preview-close-btn:hover {
+  background: #fee2e2;
+  color: var(--danger);
+  transform: scale(1.05);
+}
+
+.preview-viewport {
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  background: #cbd5e1;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: calc(92vh - 60px);
+}
+
+.preview-viewport.desktop {
+  width: 820px;
+}
+
+.preview-viewport.mobile {
+  width: 440px;
+}
+
+.preview-viewport.mobile .preview-frame {
+  width: 375px;
+  height: 640px;
+  max-height: calc(88vh - 90px);
+  border-radius: 36px;
+  border: 12px solid #0f172a;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #ffffff;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.preview-viewport.mobile .preview-frame::-webkit-scrollbar {
+  width: 5px;
+}
+
+.preview-viewport.mobile .preview-frame::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.25);
+  border-radius: 10px;
+}
+
+.preview-viewport.desktop .preview-frame {
+  width: 100%;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+.preview-viewport.mobile .read {
+  padding: 22px 18px !important;
+}
+
+.preview-viewport.desktop .read {
+  padding: 32px 36px !important;
+}
+
+.preview-viewport.mobile .read img,
+.preview-viewport.mobile .read img[style*="float"],
+.preview-viewport.mobile .read img[style*="margin"] {
+  float: none !important;
+  display: block !important;
+  margin: 18px auto !important;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  clear: both !important;
+}
+
+@media (max-width: 768px) {
+  .preview-viewport.desktop,
+  .preview-viewport.mobile {
+    width: 90vw;
+  }
+}
