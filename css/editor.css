@@ -92,7 +92,9 @@
   color: var(--text) !important;
 }
 
-.ql-editor pre.ql-syntax {
+.ql-editor pre.ql-syntax,
+.ql-editor pre,
+.ql-editor .ql-code-block-container {
   background: var(--bg) !important;
   border-left: 4px solid var(--primary) !important;
   padding: 14px 18px !important;
@@ -102,6 +104,15 @@
   font:
     15px/1.5 ui-monospace,
     monospace !important;
+}
+
+.ql-editor .ql-code-block {
+  font: inherit !important;
+  color: inherit !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .ql-editor.ql-blank::before {

@@ -62,7 +62,7 @@ const SEED_DATA = {
         <p>Gerak Lurus Beraturan (GLB) adalah gerak suatu benda pada lintasan yang lurus dengan kecepatan yang konstan atau tetap setiap saat. Karena kecepatannya tetap, maka percepatan benda bernilai <b>nol (a = 0)</b>.</p>
         
         <p>Rumus dasar GLB sangat sederhana:</p>
-        <pre class="ql-syntax">s = v . t
+        <pre>s = v . t
 
 Keterangan:
 s = Jarak tempuh (meter / m)
@@ -73,7 +73,7 @@ t = Waktu tempuh (sekon / s)</pre>
         <p>Gerak Lurus Berubah Beraturan (GLBB) adalah gerak benda pada lintasan lurus dengan <b>percepatan yang konstan (a = tetap)</b>. Artinya, kecepatan benda bertambah (dipercepat) atau berkurang (diperlambat) secara teratur tiap detiknya.</p>
 
         <p>Tiga rumus emas dalam GLBB:</p>
-        <pre class="ql-syntax">1) vt = v0 + (a . t)
+        <pre>1) vt = v0 + (a . t)
 2) s  = (v0 . t) + (1/2 . a . t²)
 3) vt² = v0² + (2 . a . s)
 
@@ -101,12 +101,12 @@ s  = Jarak perpindahan (m)</pre>
 
         <h2>1. Hukum I Newton (Kelembaman / Inersia)</h2>
         <p><i>"Jika resultan gaya yang bekerja pada benda bernilai nol, maka benda yang awalnya diam akan tetap diam, dan benda yang awalnya bergerak lurus beraturan akan tetap bergerak dengan kecepatan konstan."</i></p>
-        <pre class="ql-syntax">ΣF = 0</pre>
+        <pre>ΣF = 0</pre>
         <p><b>Contoh sehari-hari:</b> Saat kita naik mobil dan mobil mendadak direm, tubuh kita otomatis terdorong ke depan karena sifat kelembaman (mempertahankan keadaan gerak semula).</p>
 
         <h2>2. Hukum II Newton (Percepatan)</h2>
         <p><i>"Percepatan yang dialami oleh sebuah benda sebanding dengan resultan gaya yang bekerja padanya dan berbanding terbalik dengan massa benda tersebut."</i></p>
-        <pre class="ql-syntax">ΣF = m . a  atau  a = ΣF / m
+        <pre>ΣF = m . a  atau  a = ΣF / m
 
 Keterangan:
 ΣF = Resultan gaya (Newton / N)
@@ -115,7 +115,7 @@ a  = Percepatan (m/s²)</pre>
 
         <h2>3. Hukum III Newton (Aksi - Reaksi)</h2>
         <p><i>"Untuk setiap gaya aksi yang diberikan pada suatu benda, akan selalu timbul gaya reaksi yang besarnya sama namun arahnya berlawanan dan bekerja pada dua benda yang berbeda."</i></p>
-        <pre class="ql-syntax">F_aksi = - F_reaksi</pre>
+        <pre>F_aksi = - F_reaksi</pre>
         <p><b>Ciri-ciri pasangan gaya aksi-reaksi:</b></p>
         <ul>
           <li>Besarnya selalu sama</li>
@@ -130,7 +130,7 @@ a  = Percepatan (m/s²)</pre>
       isi: `
         <h2>1. Konsep Usaha (Work)</h2>
         <p>Dalam fisika, usaha didefinisikan sebagai hasil kali antara komponen gaya searah perpindahan dengan besar perpindahan benda itu sendiri.</p>
-        <pre class="ql-syntax">W = F . s . cos(θ)
+        <pre>W = F . s . cos(θ)
 
 Keterangan:
 W = Usaha (Joule / J)
@@ -140,11 +140,11 @@ s = Perpindahan (m)
 
         <h2>2. Energi Kinetik (Ek)</h2>
         <p>Energi yang dimiliki oleh benda karena geraknya (kecepatannya):</p>
-        <pre class="ql-syntax">Ek = 1/2 . m . v²</pre>
+        <pre>Ek = 1/2 . m . v²</pre>
 
         <h2>3. Energi Potensial Gravitasi (Ep)</h2>
         <p>Energi yang dimiliki oleh benda karena kedudukan atau ketinggiannya terhadap acuan tertentu:</p>
-        <pre class="ql-syntax">Ep = m . g . h
+        <pre>Ep = m . g . h
 
 Keterangan:
 m = Massa (kg)
@@ -153,7 +153,7 @@ h = Ketinggian benda dari tanah (m)</pre>
 
         <h2>4. Hukum Kekekalan Energi Mekanik</h2>
         <p>Jika tidak ada gaya luar non-konservatif (seperti gaya gesek udara), energi mekanik total benda selalu kekal di setiap titik lintasan:</p>
-        <pre class="ql-syntax">Em1 = Em2
+        <pre>Em1 = Em2
 (Ep1 + Ek1) = (Ep2 + Ek2)</pre>
       `,
     },

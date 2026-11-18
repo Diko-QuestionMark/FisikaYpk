@@ -192,12 +192,14 @@ function initQuillMateri() {
     },
   });
 
-  // Muat konten materi (rapikan format video dan HTML)
+  // Muat konten materi (gunakan dangerouslyPasteHTML agar tag <pre> rumus dan HTML standar diproses rapi oleh Quill)
   let raw = m.isi || "";
   if (raw) {
     raw = fmt(raw);
+    quillMateri.clipboard.dangerouslyPasteHTML(raw);
+  } else {
+    quillMateri.setContents([]);
   }
-  quillMateri.root.innerHTML = raw;
 
   // Pasang petunjuk (tooltip) bahasa Indonesia di setiap tombol toolbar saat di-hover
   setupQuillTooltips(quillMateri.getModule("toolbar")?.container || container.previousElementSibling);

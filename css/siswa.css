@@ -226,7 +226,9 @@ h2 {
 }
 
 .read pre,
-.read-body pre {
+.read-body pre,
+.read .ql-code-block-container,
+.read-body .ql-code-block-container {
   background: var(--bg);
   border-left: 4px solid var(--primary);
   padding: 14px 18px;
