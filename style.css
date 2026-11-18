@@ -101,6 +101,46 @@ nav a {
   font-size: 15px;
 }
 
+/* ===================================================
+   NEON CLOUD DATABASE BADGE
+=================================================== */
+
+.neon-cloud-badge {
+  display: none; /* Sembunyikan saat online */
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+
+.neon-cloud-badge.offline {
+  display: inline-flex;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.sidebar .neon-cloud-badge.offline {
+  background: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+
+.neon-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.neon-dot.red {
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);
+}
+
 /* =========================
    HERO SECTION
 ========================= */

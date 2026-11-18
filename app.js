@@ -1,5 +1,91 @@
 /* Penyimpanan & utilitas bersama (dipakai index.html dan admin.html) */
 const KEY = 'fisika_media_v3';
+
+/* Konfigurasi Database Cloud Neon PostgreSQL */
+const NEON_CONFIG = {
+    endpoint: 'https://ep-weathered-breeze-aoj861as-pooler.c-2.ap-southeast-1.aws.neon.tech/sql',
+    conn: 'postgresql://neondb_owner:npg_G6a3XClrKDce@ep-weathered-breeze-aoj861as-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
+};
+
+const NeonDB = {
+    status: 'connecting', // 'synced' | 'syncing' | 'offline'
+    listeners: [],
+
+    onStatusChange(fn) {
+        if (typeof fn === 'function') this.listeners.push(fn);
+    },
+
+    notify(s) {
+        this.status = s;
+        this.listeners.forEach(fn => fn(s));
+        this.updateBadge();
+    },
+
+    updateBadge() {
+        const badges = document.querySelectorAll('.neon-cloud-badge');
+        badges.forEach(b => {
+            if (this.status === 'offline') {
+                b.innerHTML = '<span class="neon-dot red"></span> Mode Offline';
+                b.className = 'neon-cloud-badge offline';
+                b.style.display = 'inline-flex';
+                b.title = 'Offline (data tetap tersimpan di perangkat ini)';
+            } else {
+                b.innerHTML = '';
+                b.className = 'neon-cloud-badge ' + this.status;
+                b.style.display = 'none';
+            }
+        });
+    },
+
+    async query(sql, params = []) {
+        const res = await fetch(NEON_CONFIG.endpoint, {
+            method: 'POST',
+            headers: {
+                'Neon-Connection-String': NEON_CONFIG.conn
+            },
+            body: JSON.stringify({ query: sql, params })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        return json.rows || [];
+    },
+
+    async pull() {
+        this.notify('syncing');
+        try {
+            const rows = await this.query("SELECT data FROM app_state WHERE id = 'main' LIMIT 1;");
+            if (rows && rows.length && rows[0].data) {
+                const rawData = rows[0].data;
+                const cloudData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                localStorage.setItem(KEY, JSON.stringify(cloudData));
+                this.notify('synced');
+                return cloudData;
+            }
+            this.notify('synced');
+            return null;
+        } catch (e) {
+            console.warn('[Neon Cloud] Pull failed, fallback to local storage:', e);
+            this.notify('offline');
+            return null;
+        }
+    },
+
+    async push(d) {
+        this.notify('syncing');
+        try {
+            await this.query(`
+                INSERT INTO app_state (id, data)
+                VALUES ('main', $1::jsonb)
+                ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW();
+            `, [JSON.stringify(d)]);
+            this.notify('synced');
+        } catch (e) {
+            console.warn('[Neon Cloud] Push failed, data kept in local storage:', e);
+            this.notify('offline');
+        }
+    }
+};
+
 const Store = {
     get() {
         try {
@@ -18,9 +104,20 @@ const Store = {
             return (typeof SEED_DATA !== 'undefined') ? structuredClone(SEED_DATA) : { site: { nama: 'FisikaKu', pin: 'FahrulPolman' }, materi: [], quiz: [], absen: [], daftar_kelas: [], kelas_siswa: {} };
         }
     },
-    save(d) { localStorage.setItem(KEY, JSON.stringify(d)) },
-    reset() { localStorage.removeItem(KEY) },
-    uid(p) { return p + Date.now().toString(36) }
+    save(d) {
+        localStorage.setItem(KEY, JSON.stringify(d));
+        NeonDB.push(d); // Otomatis kirim ke cloud database Neon PostgreSQL
+    },
+    reset() {
+        localStorage.removeItem(KEY);
+    },
+    async sync(callback) {
+        const cloudData = await NeonDB.pull();
+        if (cloudData && typeof callback === 'function') {
+            callback(cloudData);
+        }
+    },
+    uid(p) { return p + Date.now().toString(36); }
 };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function fmtTanggal(str) {
@@ -82,7 +179,11 @@ function shell(active, nav = []) {
     document.body.insertAdjacentHTML('afterbegin', `<header class="top"><div class="wrap"><a class="brand" href="${homeHref}"><img class="logo" src="aset/YPKLOGO.png" alt="Logo ${esc(d.nama)}"><span>${esc(d.nama)}</span></a>${nav.length ? `<nav>${nav.map(n => `<a href="${n[1]}" class="${n[2] === active ? 'on' : ''}">${n[0]}</a>`).join('')}</nav>` : ''}</div></header>`);
     document.title = d.nama;
 }
-function footer() { const d = Store.get().site; document.body.insertAdjacentHTML('beforeend', `<footer><div class="wrap">© ${new Date().getFullYear()} ${esc(d.footer)}</div></footer>`) }
+function footer() {
+    const d = Store.get().site;
+    document.body.insertAdjacentHTML('beforeend', `<footer><div class="wrap" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px"><span>© ${new Date().getFullYear()} ${esc(d.footer)}</span><span class="neon-cloud-badge" style="display:none"></span></div></footer>`);
+    NeonDB.updateBadge();
+}
 /* Akses rahasia ke panel admin via triple-click logo sekolah */
 let _lc = 0, _lt;
 document.addEventListener('click', (e) => {

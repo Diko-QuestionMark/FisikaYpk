@@ -13,12 +13,12 @@
       href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=15" />
   </head>
   <body>
     <main><div class="wrap" id="app"></div></main>
-    <script src="js/seed-data.js"></script>
-    <script src="app.js"></script>
+    <script src="js/seed-data.js?v=15"></script>
+    <script src="app.js?v=15"></script>
     <script>
       shell(null, [
         ["Home", "#home", "home"],
@@ -183,6 +183,10 @@
       addEventListener("hashchange", route);
       route();
       footer();
+      Store.sync((cloud) => {
+        D = cloud;
+        route();
+      });
     </script>
   </body>
 </html>

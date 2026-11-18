@@ -88,6 +88,7 @@ function renderAdmin() {
         </div>
         <nav class="sidebar-nav" id="sidenav"></nav>
         <div style="padding:14px 20px 0;border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;display:flex;flex-direction:column;gap:8px">
+          <span class="neon-cloud-badge" style="display:none;font-size:11.5px;padding:4px 8px"></span>
           <a class="sidebar-back" href="index.html" style="padding:0;border:none;margin:0">← Kembali ke website</a>
           <button onclick="logoutGuru()" style="background:none;border:none;color:rgba(255,255,255,0.5);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;padding:0" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">🚪 Keluar</button>
         </div>
@@ -238,5 +239,12 @@ function initAdmin() {
   } else {
     renderAdmin();
   }
+
+  // Sinkronkan data dari Neon Cloud
+  Store.sync((cloud) => {
+    D = cloud;
+    if (isAuth()) draw();
+    NeonDB.updateBadge();
+  });
 }
 
