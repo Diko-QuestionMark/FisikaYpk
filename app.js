@@ -86,6 +86,47 @@ const NeonDB = {
     }
 };
 
+/* Konfigurasi & Helper Topik Materi */
+const TOPIK_LIST = [
+    { id: 'pengukuran', label: 'Hakikat Fisika & Pengukuran' },
+    { id: 'energi', label: 'Sumber Energi' },
+    { id: 'pemanasan', label: 'Pemanasan Global' },
+    { id: 'umum', label: 'Umum' }
+];
+
+const TOPIK_MAP = {
+    pengukuran: 'Hakikat Fisika & Pengukuran',
+    energi: 'Sumber Energi',
+    pemanasan: 'Pemanasan Global',
+    umum: 'Umum'
+};
+
+const DEFAULT_IMAGES = {
+    pengukuran: 'img/default-pengukuran.svg',
+    energi: 'img/default-energi.svg',
+    pemanasan: 'img/default-pemanasan.svg',
+    umum: 'img/default-umum.svg'
+};
+
+function normalizeTopik(t) {
+    if (!t) return 'umum';
+    const s = String(t).toLowerCase().trim();
+    if (s === 'pengukuran' || s.includes('pengukuran') || s.includes('hakikat')) return 'pengukuran';
+    if (s === 'energi') return 'energi';
+    if (s === 'pemanasan' || s.includes('global') || s.includes('pemanasan')) return 'pemanasan';
+    return 'umum';
+}
+
+function getMateriArt(m) {
+    const topik = normalizeTopik(m && m.topik);
+    const hasCustom = Boolean(m && m.gambar && String(m.gambar).trim());
+    return {
+        topik,
+        src: hasCustom ? String(m.gambar).trim() : (DEFAULT_IMAGES[topik] || DEFAULT_IMAGES.umum),
+        isDefault: !hasCustom
+    };
+}
+
 const Store = {
     get() {
         try {
@@ -94,7 +135,7 @@ const Store = {
             const d = JSON.parse(raw) || fallback;
             d.site = d.site || {};
             d.site.pin = d.site.pin || 'FahrulPolman';
-            d.materi = (d.materi || []).map(m => ({ ...m, topik: m.topik || 'Umum' }));
+            d.materi = (d.materi || []).map(m => ({ ...m, topik: normalizeTopik(m.topik), gambar: m.gambar || '' }));
             d.quiz = (d.quiz || []).map(q => ({ ...q, topik: q.topik || 'Umum' }));
             d.absen = d.absen || [];
             d.daftar_kelas = Array.isArray(d.daftar_kelas) ? d.daftar_kelas : [];
@@ -102,7 +143,7 @@ const Store = {
             return d;
         } catch (e) {
             const fallback = (typeof SEED_DATA !== 'undefined') ? structuredClone(SEED_DATA) : { site: { nama: 'FisikaKu', pin: 'FahrulPolman' }, materi: [], quiz: [], absen: [], daftar_kelas: [], kelas_siswa: {} };
-            fallback.materi = (fallback.materi || []).map(m => ({ ...m, topik: m.topik || 'Umum' }));
+            fallback.materi = (fallback.materi || []).map(m => ({ ...m, topik: normalizeTopik(m.topik), gambar: m.gambar || '' }));
             fallback.quiz = (fallback.quiz || []).map(q => ({ ...q, topik: q.topik || 'Umum' }));
             return fallback;
         }

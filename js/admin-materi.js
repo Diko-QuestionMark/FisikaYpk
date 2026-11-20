@@ -44,12 +44,33 @@ function updateLivePreview() {
   }
 }
 
+function handleGambarUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 500 * 1024) {
+    if (typeof toast === "function") toast("Ukuran gambar melebihi batas 500 KB");
+    alert("Ukuran gambar melebihi batas 500 KB. Silakan pilih gambar yang lebih kecil (maksimal 500 KB).");
+    input.value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const inp = document.getElementById("gambar_sampul");
+    if (inp) {
+      inp.value = e.target.result;
+      if (typeof updateLivePreview === "function") updateLivePreview();
+      if (typeof toast === "function") toast("Gambar berhasil dimuat");
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
 function pMateri() {
   if (!edit) {
     quillMateri = null;
     const allList = [...(D.materi || [])].reverse();
     const list = allList.filter(
-      (x) => filterTopikMateri === "Semua" || (x.topik || "Umum") === filterTopikMateri,
+      (x) => filterTopikMateri === "Semua" || normalizeTopik(x.topik) === filterTopikMateri,
     );
     const items = list
       .map(
@@ -57,7 +78,7 @@ function pMateri() {
       <div class="crud-card">
         <div class="crud-card-left">
           <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
-          <div class="crud-card-sub">${esc(x.topik || "Umum")} · ${hitungWaktuBaca(x.isi)}</div>
+          <div class="crud-card-sub">${esc(TOPIK_MAP[normalizeTopik(x.topik)] || "Umum")}${x.gambar ? " · 🖼 Gambar Kustom" : ""} · ${hitungWaktuBaca(x.isi)}</div>
         </div>
         <div class="crud-actions">
           <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
@@ -76,24 +97,30 @@ function pMateri() {
           </div>
           <select onchange="filterTopikMateri=this.value;draw()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;cursor:pointer">
             <option value="Semua" ${filterTopikMateri === "Semua" ? "selected" : ""}>Semua Topik</option>
-            ${TOPIK.map((t) => `<option value="${esc(t)}" ${filterTopikMateri === t ? "selected" : ""}>${esc(t)}</option>`).join("")}
+            <option value="pengukuran" ${filterTopikMateri === "pengukuran" ? "selected" : ""}>Hakikat Fisika & Pengukuran</option>
+            <option value="energi" ${filterTopikMateri === "energi" ? "selected" : ""}>Sumber Energi</option>
+            <option value="pemanasan" ${filterTopikMateri === "pemanasan" ? "selected" : ""}>Pemanasan Global</option>
+            <option value="umum" ${filterTopikMateri === "umum" ? "selected" : ""}>Umum</option>
           </select>
         </div>
         <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
       </div>
       <div class="crud-card-list">
-        ${items || `<div class="crud-empty">Belum ada materi ${filterTopikMateri !== "Semua" ? `pada topik <b>${esc(filterTopikMateri)}</b>` : ""}. Klik tombol <b>+ Tambah</b> untuk membuat baru.</div>`}
+        ${items || `<div class="crud-empty">Belum ada materi ${filterTopikMateri !== "Semua" ? `pada topik <b>${esc(TOPIK_MAP[filterTopikMateri] || filterTopikMateri)}</b>` : ""}. Klik tombol <b>+ Tambah</b> untuk membuat baru.</div>`}
       </div>
     `;
   }
 
   const m = edit === "new"
-    ? { judul: "", topik: filterTopikMateri !== "Semua" ? filterTopikMateri : "Umum", isi: "" }
+    ? { judul: "", topik: filterTopikMateri !== "Semua" ? filterTopikMateri : "umum", gambar: "", isi: "" }
     : (D.materi.find((x) => x.id === edit) || {
         judul: "",
-        topik: "Umum",
+        topik: "umum",
+        gambar: "",
         isi: "",
       });
+
+  const curTopik = normalizeTopik(m.topik);
 
   return `
     <div class="materi-editor-layout">
@@ -109,10 +136,27 @@ function pMateri() {
               <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hakikat Fisika dan Pengukuran" oninput="updateLivePreview()">
             </div>
             <div>
-              <label>Topik Pembelajaran</label>
-              <select id="topik">
-                ${TOPIK.map((t) => `<option value="${esc(t)}" ${(m.topik || "Umum") === t ? "selected" : ""}>${esc(t)}</option>`).join("")}
+              <label>Topik</label>
+              <select id="topik" onchange="updateLivePreview()">
+                <option value="pengukuran" ${curTopik === "pengukuran" ? "selected" : ""}>Hakikat Fisika & Pengukuran</option>
+                <option value="energi" ${curTopik === "energi" ? "selected" : ""}>Sumber Energi</option>
+                <option value="pemanasan" ${curTopik === "pemanasan" ? "selected" : ""}>Pemanasan Global</option>
+                <option value="umum" ${curTopik === "umum" ? "selected" : ""}>Umum</option>
               </select>
+            </div>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span>Gambar Sampul</span>
+              <span style="font-size:12px;color:var(--text-muted);font-weight:400">opsional, maks 500 KB</span>
+            </label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="gambar_sampul" value="${esc(m.gambar || "")}" placeholder="URL atau path gambar sampul (opsional)..." style="flex:1;min-width:200px" oninput="updateLivePreview()">
+              <label class="btn sm ghost" style="margin:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:9px 14px">
+                📁 Unggah File
+                <input type="file" id="file_gambar_sampul" accept="image/*" hidden onchange="handleGambarUpload(this)">
+              </label>
+              ${m.gambar ? `<button type="button" class="btn sm ghost" onclick="$('#gambar_sampul').value='';updateLivePreview();" title="Hapus gambar sampul" style="color:var(--danger)">Hapus</button>` : ""}
             </div>
           </div>
           <label style="margin-top:14px">Isi Materi</label>
@@ -310,10 +354,16 @@ function sM(id) {
 
   const existing = D.materi.find((x) => x.id === id);
   const now = Date.now();
+  const rawTopik = $("#topik")?.value || existing?.topik || "umum";
+  const topikNormalized = normalizeTopik(rawTopik);
+  const gambarInput = $("#gambar_sampul");
+  const gambarVal = gambarInput ? gambarInput.value.trim() : (existing?.gambar || "");
+
   const o = {
     id: id || Store.uid("m"),
     judul: $("#j").value.trim(),
-    topik: $("#topik")?.value || existing?.topik || "Umum",
+    topik: topikNormalized,
+    gambar: gambarVal,
     kategori: existing?.kategori || "Umum",
     ringkasan: cuplikan(isiContent),
     video: existing?.video || "",

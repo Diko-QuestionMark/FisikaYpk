@@ -53,10 +53,16 @@ function cards(l, t) {
     return `<div class="grid">${l.map(x => {
         if (t === 'm') {
             const preview = x.ringkasan || cuplikan(x.isi) || 'Klik untuk membaca materi selengkapnya.';
-            return `<div class="card clickable" onclick="location.hash='#materi/${x.id}'">
-                <h3>${esc(x.judul)}</h3>
-                <p>${esc(preview)}</p>
-                <span class="card-action">Buka materi →</span>
+            const art = getMateriArt(x);
+            return `<div class="card card-materi clickable" onclick="location.hash='#materi/${x.id}'">
+                <div class="art art-${art.topik}${art.isDefault ? ' default' : ''}">
+                    <img src="${esc(art.src)}" alt="${esc(x.judul)}" class="${art.isDefault ? 'is-default' : 'is-custom'}" loading="lazy" />
+                </div>
+                <div class="card-materi-body">
+                    <h3>${esc(x.judul)}</h3>
+                    <p>${esc(preview)}</p>
+                    <span class="card-action">Buka materi →</span>
+                </div>
             </div>`;
         }
         const handler = x.tipe === 'native'

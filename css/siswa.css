@@ -118,6 +118,61 @@ h2 {
 }
 
 /* =========================
+   KARTU MATERI DENGAN AREA ILUSTRASI (ART)
+========================= */
+
+.card.card-materi {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.art {
+  height: 140px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background-color: #eef1f6;
+}
+
+.art.art-pengukuran {
+  background-color: #e4f1ff;
+}
+
+.art.art-energi {
+  background-color: #e1f6ea;
+}
+
+.art.art-pemanasan {
+  background-color: #fff1e1;
+}
+
+.art.art-umum {
+  background-color: #eef1f6;
+}
+
+.art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.art img.is-default,
+.art.default img {
+  object-fit: contain;
+  padding: 12px;
+}
+
+.card-materi-body {
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+/* =========================
    KARTU KUIS MODERN (SESUAI REFERENSI)
 ========================= */
 
