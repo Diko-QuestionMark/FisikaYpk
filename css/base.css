@@ -93,17 +93,34 @@ header.top .wrap {
   display: block;
 }
 
-nav {
+header.top nav {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
 }
 
-nav a {
-  padding: 8px 12px;
+header.top nav a {
+  padding: 7px 14px;
   text-decoration: none;
-  color: var(--text);
+  color: var(--text-muted);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14.5px;
+  border-radius: 999px;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+header.top nav a:hover {
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.05);
+}
+
+header.top nav a.on,
+header.top nav a.active {
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 700;
 }
 
 /* =========================
@@ -184,13 +201,14 @@ footer {
     font-weight: 800;
   }
 
-  nav {
-    gap: 2px;
+  header.top nav {
+    gap: 4px;
   }
 
-  nav a {
-    padding: 6px 8px;
-    font-size: 13.5px;
+  header.top nav a {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 999px;
   }
 
   .wrap {

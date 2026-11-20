@@ -94,14 +94,17 @@ const Store = {
             const d = JSON.parse(raw) || fallback;
             d.site = d.site || {};
             d.site.pin = d.site.pin || 'FahrulPolman';
-            d.materi = d.materi || [];
-            d.quiz = d.quiz || [];
+            d.materi = (d.materi || []).map(m => ({ ...m, topik: m.topik || 'Umum' }));
+            d.quiz = (d.quiz || []).map(q => ({ ...q, topik: q.topik || 'Umum' }));
             d.absen = d.absen || [];
             d.daftar_kelas = Array.isArray(d.daftar_kelas) ? d.daftar_kelas : [];
             d.kelas_siswa = d.kelas_siswa || {};
             return d;
         } catch (e) {
-            return (typeof SEED_DATA !== 'undefined') ? structuredClone(SEED_DATA) : { site: { nama: 'FisikaKu', pin: 'FahrulPolman' }, materi: [], quiz: [], absen: [], daftar_kelas: [], kelas_siswa: {} };
+            const fallback = (typeof SEED_DATA !== 'undefined') ? structuredClone(SEED_DATA) : { site: { nama: 'FisikaKu', pin: 'FahrulPolman' }, materi: [], quiz: [], absen: [], daftar_kelas: [], kelas_siswa: {} };
+            fallback.materi = (fallback.materi || []).map(m => ({ ...m, topik: m.topik || 'Umum' }));
+            fallback.quiz = (fallback.quiz || []).map(q => ({ ...q, topik: q.topik || 'Umum' }));
+            return fallback;
         }
     },
     save(d) {
@@ -159,11 +162,24 @@ function cuplikan(html, len = 120) {
     if (!html) return '';
     try {
         const doc = new DOMParser().parseFromString(String(html), 'text/html');
-        const text = (doc.body.textContent || '').trim().replace(/\s+/g, ' ');
+        // Utamakan paragraf pertama agar ringkasan langsung berisi penjelasan materi (tanpa menabrak judul sub-bab)
+        const pElements = Array.from(doc.body.querySelectorAll('p'));
+        let chosenText = '';
+        for (const p of pElements) {
+            const t = (p.textContent || '').trim();
+            if (t.length > 10) {
+                chosenText = t;
+                break;
+            }
+        }
+        let text = (chosenText || doc.body.textContent || '').trim().replace(/\s+/g, ' ');
+        // Bersihkan angka urutan atau nomor di awal ringkasan (misal "1. ", "1) ", "2. ")
+        text = text.replace(/^\s*\d+[\.\)]\s*/, '');
         if (!text) return 'Pelajari materi selengkapnya →';
         return text.length > len ? text.slice(0, len) + '…' : text;
     } catch (e) {
-        const clean = String(html).replace(/<[^>]*>/g, '').trim().replace(/\s+/g, ' ');
+        let clean = String(html).replace(/<[^>]*>/g, '').trim().replace(/\s+/g, ' ');
+        clean = clean.replace(/^\s*\d+[\.\)]\s*/, '');
         return clean.length > len ? clean.slice(0, len) + '…' : (clean || 'Pelajari materi selengkapnya →');
     }
 }
@@ -172,11 +188,17 @@ function yt(u) {
     return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` : '';
 }
 const TIPE = { native: 'Kuis di website', link: 'Link eksternal' };
+const TOPIK = [
+    'Hakikat Fisika & Pengukuran',
+    'Sumber Energi',
+    'Pemanasan Global',
+    'Umum'
+];
 /* Header & footer sama di semua halaman agar tampilan konsisten */
 function shell(active, nav = []) {
     const d = Store.get().site;
     const homeHref = (nav[0] && nav[0][1]) || 'index.html';
-    document.body.insertAdjacentHTML('afterbegin', `<header class="top"><div class="wrap"><a class="brand" href="${homeHref}"><img class="logo" src="aset/YPKLOGO.png" alt="Logo ${esc(d.nama)}"><span>${esc(d.nama)}</span></a>${nav.length ? `<nav>${nav.map(n => `<a href="${n[1]}" class="${n[2] === active ? 'on' : ''}">${n[0]}</a>`).join('')}</nav>` : ''}</div></header>`);
+    document.body.insertAdjacentHTML('afterbegin', `<header class="top"><div class="wrap"><a class="brand" href="${homeHref}"><img class="logo" src="aset/YPKLOGO.png" alt="Logo ${esc(d.nama)}"><span>${esc(d.nama)}</span></a>${nav.length ? `<nav>${nav.map(n => `<a href="${n[1]}" class="${n[2] === active ? 'on active' : ''}">${n[0]}</a>`).join('')}</nav>` : ''}</div></header>`);
     document.title = d.nama;
 }
 function footer() {

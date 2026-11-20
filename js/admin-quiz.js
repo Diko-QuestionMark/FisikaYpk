@@ -1,29 +1,62 @@
 /* Modul Kuis / Latihan Soal - Clean Professional Layout */
 let Q;
+let filterTopikQuiz = "Semua";
 
 function pQuiz() {
   if (!edit) {
     Q = null;
-    return uiCrudList(
-      D.quiz,
-      "quiz",
-      (x) =>
-        (TIPE[x.tipe] || "Link eksternal") +
-        (x.tipe === "native" ? ` · ${x.soal.length} soal` : ""),
-      "Daftar Kuis",
+    const allList = [...(D.quiz || [])].reverse();
+    const list = allList.filter(
+      (x) => filterTopikQuiz === "Semua" || (x.topik || "Umum") === filterTopikQuiz,
     );
+    const items = list
+      .map(
+        (x) => `
+      <div class="crud-card">
+        <div class="crud-card-left">
+          <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
+          <div class="crud-card-sub">${esc(x.topik || "Umum")} · ${TIPE[x.tipe] || "Link eksternal"}${x.tipe === "native" ? ` · ${x.soal.length} soal` : ""}</div>
+        </div>
+        <div class="crud-actions">
+          <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
+          <button class="crud-btn-icon del" onclick="del('quiz','${x.id}')" title="Hapus">${ICON_TRASH}</button>
+        </div>
+      </div>`,
+      )
+      .join("");
+
+    return `
+      <div class="crud-header">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap">
+          <div class="crud-search-wrap">
+            ${ICON_SEARCH}
+            <input type="text" class="crud-search-input" placeholder="Cari kuis..." oninput="onCrudSearch(this.value)" />
+          </div>
+          <select onchange="filterTopikQuiz=this.value;draw()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;cursor:pointer">
+            <option value="Semua" ${filterTopikQuiz === "Semua" ? "selected" : ""}>Semua Topik</option>
+            ${TOPIK.map((t) => `<option value="${esc(t)}" ${filterTopikQuiz === t ? "selected" : ""}>${esc(t)}</option>`).join("")}
+          </select>
+        </div>
+        <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
+      </div>
+      <div class="crud-card-list">
+        ${items || `<div class="crud-empty">Belum ada kuis ${filterTopikQuiz !== "Semua" ? `pada topik <b>${esc(filterTopikQuiz)}</b>` : ""}. Klik tombol <b>+ Tambah</b> untuk membuat baru.</div>`}
+      </div>
+    `;
   }
 
   if (!Q || Q._for !== edit) {
     Q = structuredClone(
       D.quiz.find((x) => x.id === edit) || {
         judul: "",
+        topik: filterTopikQuiz !== "Semua" ? filterTopikQuiz : "Umum",
         tipe: "native",
         link: "",
         soal: [],
       },
     );
     Q._for = edit;
+    Q.topik = Q.topik || (filterTopikQuiz !== "Semua" ? filterTopikQuiz : "Umum");
   }
 
   return `<div class="panel">
@@ -39,16 +72,25 @@ function pQuiz() {
           <input id="j" value="${esc(Q.judul)}" placeholder="Contoh: Kuis Kinematika Gerak Lurus">
         </div>
         <div>
-          <label>Jenis Kuis</label>
-          <select id="t" onchange="sync();draw()">
-            ${Object.entries(TIPE)
-              .map(
-                ([k, v]) =>
-                  `<option value="${k}" ${Q.tipe === k ? "selected" : ""}>${v}</option>`,
-              )
-              .join("")}
+          <label>Topik Pembelajaran</label>
+          <select id="topik" onchange="Q.topik=this.value">
+            ${TOPIK.map(
+              (t) =>
+                `<option value="${esc(t)}" ${(Q.topik || "Umum") === t ? "selected" : ""}>${esc(t)}</option>`,
+            ).join("")}
           </select>
         </div>
+      </div>
+      <div style="margin-top:14px">
+        <label>Jenis Kuis</label>
+        <select id="t" onchange="sync();draw()">
+          ${Object.entries(TIPE)
+            .map(
+              ([k, v]) =>
+                `<option value="${k}" ${Q.tipe === k ? "selected" : ""}>${v}</option>`,
+            )
+            .join("")}
+        </select>
       </div>
 
       ${
@@ -157,6 +199,7 @@ function setKunciJawaban(soalIdx, kunciIdx) {
 function sync() {
   if (!Q) return;
   if ($("#j")) Q.judul = $("#j").value;
+  if ($("#topik")) Q.topik = $("#topik").value;
   if ($("#t")) Q.tipe = $("#t").value;
   if ($("#l")) Q.link = $("#l").value;
 
@@ -196,8 +239,13 @@ function sQ() {
     return toast(`Tandai kunci jawaban benar untuk Soal ${idxTanpaKunci + 1}`);
   }
 
+  const existing = (D.quiz || []).find((x) => x.id === Q.id);
+  const now = Date.now();
   const o = { ...Q, id: Q.id || Store.uid("q") };
   delete o._for;
+  o.topik = Q.topik || "Umum";
+  o.createdAt = Q.createdAt || existing?.createdAt || now;
+  o.updatedAt = now;
   if (o.tipe !== "native") o.soal = [];
 
   up(D.quiz, o);

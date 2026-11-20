@@ -186,7 +186,8 @@ function uiCrudList(arr, type, sub) {
   };
   const ph = placeholders[type] || "Cari data...";
 
-  const cards = (arr || [])
+  const cards = [...(arr || [])]
+    .reverse()
     .map(
       (x) => `
     <div class="crud-card">

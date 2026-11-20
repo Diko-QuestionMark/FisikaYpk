@@ -3,7 +3,9 @@ let A, filterKelas = "Semua";
 
 function pAbsen() {
   if (!edit) {
-    const allList = D.absen || [];
+    const allList = [...(D.absen || [])].reverse().sort((a, b) => {
+      return String(b.tanggal || "").localeCompare(String(a.tanggal || ""));
+    });
     const list = allList.filter(
       (x) => filterKelas === "Semua" || x.kelas === filterKelas,
     );
@@ -181,7 +183,14 @@ function sA() {
   if (!A.kelas.trim()) return toast("Kelas wajib diisi");
   if (!A.siswa.length)
     return toast("Belum ada data siswa di kelas ini. Masukkan di menu Data Siswa.");
-  const o = { ...A, id: A.id || Store.uid("a") };
+  const existing = (D.absen || []).find((x) => x.id === A.id);
+  const now = Date.now();
+  const o = {
+    ...A,
+    id: A.id || Store.uid("a"),
+    createdAt: A.createdAt || existing?.createdAt || now,
+    updatedAt: now,
+  };
   delete o._for;
   D.absen = D.absen || [];
   up(D.absen, o);

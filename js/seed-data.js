@@ -57,6 +57,7 @@ const SEED_DATA = {
     {
       id: "mat-kinematika-glbb",
       judul: "Kinematika Gerak Lurus Beraturan (GLB & GLBB)",
+      topik: "Umum",
       isi: `
         <h2>1. Gerak Lurus Beraturan (GLB)</h2>
         <p>Gerak Lurus Beraturan (GLB) adalah gerak suatu benda pada lintasan yang lurus dengan kecepatan yang konstan atau tetap setiap saat. Karena kecepatannya tetap, maka percepatan benda bernilai <b>nol (a = 0)</b>.</p>
@@ -95,6 +96,7 @@ s  = Jarak perpindahan (m)</pre>
     {
       id: "mat-hukum-newton",
       judul: "Dinamika Gerak: Hukum Newton I, II, dan III",
+      topik: "Umum",
       isi: `
         <h2>Pengantar Dinamika Gerak</h2>
         <p>Jika pada kinematika kita hanya mempelajari bagaimana benda bergerak tanpa peduli penyebabnya, pada <b>dinamika</b> kita mempelajari penyebab gerak benda, yaitu <b>Gaya (F)</b> dengan satuan Newton (N) atau kg·m/s².</p>
@@ -127,6 +129,7 @@ a  = Percepatan (m/s²)</pre>
     {
       id: "mat-usaha-energi",
       judul: "Usaha, Energi Kinetik, dan Energi Potensial",
+      topik: "Sumber Energi",
       isi: `
         <h2>1. Konsep Usaha (Work)</h2>
         <p>Dalam fisika, usaha didefinisikan sebagai hasil kali antara komponen gaya searah perpindahan dengan besar perpindahan benda itu sendiri.</p>
@@ -163,6 +166,7 @@ h = Ketinggian benda dari tanah (m)</pre>
     {
       id: "quiz-kinematika",
       judul: "Kuis Kinematika: GLB dan GLBB",
+      topik: "Umum",
       tipe: "native",
       link: "",
       soal: [
@@ -200,6 +204,7 @@ h = Ketinggian benda dari tanah (m)</pre>
     {
       id: "quiz-newton",
       judul: "Kuis Dinamika Gerak: Hukum Newton",
+      topik: "Umum",
       tipe: "native",
       link: "",
       soal: [

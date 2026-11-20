@@ -14,9 +14,11 @@ let lastListPage = '#home'; // halaman list terakhir, untuk tombol ← Kembali
    NAVIGASI & ROUTER HASH
 ------------------------- */
 function setNav(k) {
-    document.querySelectorAll('nav a').forEach(a =>
-        a.classList.toggle('on', a.getAttribute('href') === '#' + k)
-    );
+    document.querySelectorAll('nav a').forEach(a => {
+        const isMatch = a.getAttribute('href') === '#' + k;
+        a.classList.toggle('on', isMatch);
+        a.classList.toggle('active', isMatch);
+    });
 }
 
 function route() {
@@ -54,19 +56,42 @@ function cards(l, t) {
             return `<div class="card clickable" onclick="location.hash='#materi/${x.id}'">
                 <h3>${esc(x.judul)}</h3>
                 <p>${esc(preview)}</p>
+                <span class="card-action">Buka materi →</span>
             </div>`;
         }
         const handler = x.tipe === 'native'
             ? `location.hash='#quiz/${x.id}'`
             : `window.open('${esc(x.link)}','_blank')`;
-        const btnLabel = x.tipe === 'native'
-            ? `Kerjakan (${x.soal.length} soal) →`
-            : `Buka kuis ↗`;
-        return `<div class="card clickable" onclick="${handler}">
-            <span class="tag q">${TIPE[x.tipe] || 'Link eksternal'}</span>
-            <h3>${esc(x.judul)}</h3>
-            <p>${esc(x.deskripsi)}</p>
-            <span class="btn sm" style="align-self:flex-start;pointer-events:none">${btnLabel}</span>
+        const isNative = x.tipe === 'native';
+        const soalCount = isNative && Array.isArray(x.soal) ? x.soal.length : 0;
+        const estMenit = Math.max(5, Math.round(soalCount * 1.5));
+        const diffLevel = x.level || (soalCount <= 5 ? 'Mudah' : (soalCount <= 10 ? 'Sedang' : 'Tantangan'));
+        const btnLabel = isNative ? 'Mulai kuis' : 'Buka kuis ↗';
+
+        const metaPills = isNative ? `
+            <span class="quiz-meta-pill">✓ ${soalCount} soal</span>
+            <span class="quiz-meta-pill">⏱ ${estMenit} menit</span>
+            <span class="quiz-meta-pill">${diffLevel}</span>
+        ` : `
+            <span class="quiz-meta-pill">🌐 Eksternal</span>
+            <span class="quiz-meta-pill">⏱ Fleksibel</span>
+            <span class="quiz-meta-pill">Online</span>
+        `;
+
+        return `<div class="card card-quiz">
+            <div class="quiz-card-top">
+                <div class="quiz-icon-box">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
+                        <path d="m7 14 4-4 4 3 6-7"/>
+                    </svg>
+                </div>
+                <h3 class="quiz-card-title">${esc(x.judul)}</h3>
+            </div>
+            <div class="quiz-card-meta">
+                ${metaPills}
+            </div>
+            <button class="quiz-card-btn" onclick="${handler}">${btnLabel}</button>
         </div>`;
     }).join('')}</div>`;
 }
@@ -85,9 +110,13 @@ function home() {
                 <a class="btn" href="#materi">Mulai belajar</a>
             </div>
         </section>
-        <div class="wrap" style="padding:40px 20px">
-            <h2 style="margin-bottom:20px">Materi terbaru</h2>
+        <div class="wrap" style="padding:40px 20px 20px">
+            <h2 style="margin:0 0 20px">Materi terbaru</h2>
             ${cards(D.materi.slice(-3).reverse(), 'm')}
+        </div>
+        <div class="wrap" style="padding:20px 20px 60px">
+            <h2 style="margin:0 0 20px">Quiz terbaru</h2>
+            ${cards(D.quiz.slice(-3).reverse(), 'q')}
         </div>`;
 }
 
@@ -112,6 +141,9 @@ function materi(id) {
     const relatedQuiz = D.quiz.find(q => q.tipe === 'native');
     const legacyVid = m.video && !(m.isi || '').includes(m.video) ? yt(m.video) : '';
 
+    // Bagian Uji Pemahaman Materi disembunyikan sementara sesuai permintaan
+    const quizCTA = '';
+    /*
     const quizCTA = relatedQuiz ? `
         <div class="read-footer">
             <div class="quiz-cta">
@@ -122,6 +154,7 @@ function materi(id) {
                 <a class="btn" href="#quiz/${relatedQuiz.id}">Mulai Kuis →</a>
             </div>
         </div>` : '';
+    */
 
     a.innerHTML = `
         <div class="content-wrapper">
@@ -143,7 +176,7 @@ function materi(id) {
 }
 
 /* -------------------------
-   HALAMAN KUIS (LIST & SOAL)
+   HALAMAN KUIS (LIST, INTRO & SOAL)
 ------------------------- */
 function quiz(id) {
     const a = wrapMain();
@@ -154,6 +187,49 @@ function quiz(id) {
         return;
     }
 
+    quizIntro(q);
+}
+
+function quizIntro(q) {
+    const a = document.getElementById('app');
+    const estMenit = Math.max(1, Math.round(q.soal.length * 1.5));
+
+    a.innerHTML = `
+        <div class="content-wrapper">
+            <div class="read-topbar">
+                <a class="back" href="javascript:void(0)" onclick="goBack()">← Kembali</a>
+            </div>
+            <div class="qbox">
+                <h2 style="margin:0 0 8px;font-size:26px">${esc(q.judul)}</h2>
+                <p class="sub" style="margin-bottom:20px">${esc(q.deskripsi || 'Uji pemahaman fisikamu pada topik ini.')}</p>
+
+                <div class="quiz-intro-meta">
+                    <span class="quiz-intro-badge">📝 ${q.soal.length} Butir Soal</span>
+                    <span class="quiz-intro-badge">⏱️ Estimasi ~${estMenit} Menit</span>
+                    <span class="quiz-intro-badge">🎯 Pilihan Ganda (A–D)</span>
+                </div>
+
+                <div class="quiz-rules-box">
+                    <h4>📋 Petunjuk & Peraturan Kuis</h4>
+                    <ol class="quiz-rules-list">
+                        <li>Baca setiap soal dan seluruh opsi jawaban dengan cermat.</li>
+                        <li>Pilih <strong>satu jawaban</strong> yang menurutmu paling tepat.</li>
+                        <li>Setelah memilih opsi, kunci jawaban dan pembahasan konsep akan langsung muncul.</li>
+                        <li>Jawaban yang sudah dipilih terkunci dan tidak dapat diubah kembali.</li>
+                        <li>Skor akhir (0–100) akan dihitung otomatis setelah seluruh soal selesai dikerjakan.</li>
+                    </ol>
+                </div>
+
+                <button class="btn" style="width:100%;padding:14px;font-size:16px;text-align:center" onclick="startQuiz('${q.id}')">
+                    Mulai Kuis Sekarang →
+                </button>
+            </div>
+        </div>`;
+}
+
+function startQuiz(id) {
+    const q = D.quiz.find(x => x.id === id && x.tipe === 'native');
+    if (!q) return;
     run = { q, i: 0, ans: [], lock: false };
     step();
 }
@@ -173,8 +249,8 @@ function step() {
                     <div class="score">${pct}</div>
                     <p class="sub">Benar ${benar} dari ${q.soal.length} soal.</p>
                     <div class="row">
-                        <button class="btn" onclick="quiz('${q.id}')">Ulangi</button>
-                        <a class="btn ghost" href="#quiz">Kuis lain</a>
+                        <button class="btn" onclick="startQuiz('${q.id}')">Ulangi Kuis</button>
+                        <a class="btn ghost" href="#quiz">Selesai</a>
                     </div>
                 </div>
             </div>`;

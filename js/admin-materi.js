@@ -1,6 +1,7 @@
 /* Modul Materi Pembelajaran dengan Quill.js Rich Text Editor */
 let quillMateri = null;
 let livePreviewMode = "mobile";
+let filterTopikMateri = "Semua";
 
 function setLivePreviewMode(mode) {
   livePreviewMode = mode;
@@ -46,13 +47,51 @@ function updateLivePreview() {
 function pMateri() {
   if (!edit) {
     quillMateri = null;
-    return uiCrudList(D.materi, "materi", (x) => hitungWaktuBaca(x.isi), "Daftar Materi");
+    const allList = [...(D.materi || [])].reverse();
+    const list = allList.filter(
+      (x) => filterTopikMateri === "Semua" || (x.topik || "Umum") === filterTopikMateri,
+    );
+    const items = list
+      .map(
+        (x) => `
+      <div class="crud-card">
+        <div class="crud-card-left">
+          <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
+          <div class="crud-card-sub">${esc(x.topik || "Umum")} · ${hitungWaktuBaca(x.isi)}</div>
+        </div>
+        <div class="crud-actions">
+          <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
+          <button class="crud-btn-icon del" onclick="del('materi','${x.id}')" title="Hapus">${ICON_TRASH}</button>
+        </div>
+      </div>`,
+      )
+      .join("");
+
+    return `
+      <div class="crud-header">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap">
+          <div class="crud-search-wrap">
+            ${ICON_SEARCH}
+            <input type="text" class="crud-search-input" placeholder="Cari materi fisika..." oninput="onCrudSearch(this.value)" />
+          </div>
+          <select onchange="filterTopikMateri=this.value;draw()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;cursor:pointer">
+            <option value="Semua" ${filterTopikMateri === "Semua" ? "selected" : ""}>Semua Topik</option>
+            ${TOPIK.map((t) => `<option value="${esc(t)}" ${filterTopikMateri === t ? "selected" : ""}>${esc(t)}</option>`).join("")}
+          </select>
+        </div>
+        <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
+      </div>
+      <div class="crud-card-list">
+        ${items || `<div class="crud-empty">Belum ada materi ${filterTopikMateri !== "Semua" ? `pada topik <b>${esc(filterTopikMateri)}</b>` : ""}. Klik tombol <b>+ Tambah</b> untuk membuat baru.</div>`}
+      </div>
+    `;
   }
 
   const m = edit === "new"
-    ? { judul: "", isi: "" }
+    ? { judul: "", topik: filterTopikMateri !== "Semua" ? filterTopikMateri : "Umum", isi: "" }
     : (D.materi.find((x) => x.id === edit) || {
         judul: "",
+        topik: "Umum",
         isi: "",
       });
 
@@ -64,9 +103,17 @@ function pMateri() {
           <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
             <h3 style="margin:0">${m.id ? "Ubah" : "Tambah"} Materi</h3>
           </div>
-          <div>
-            <label>Judul Materi</label>
-            <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hukum Newton tentang Gerak" oninput="updateLivePreview()">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:14px">
+            <div>
+              <label>Judul Materi</label>
+              <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hakikat Fisika dan Pengukuran" oninput="updateLivePreview()">
+            </div>
+            <div>
+              <label>Topik Pembelajaran</label>
+              <select id="topik">
+                ${TOPIK.map((t) => `<option value="${esc(t)}" ${(m.topik || "Umum") === t ? "selected" : ""}>${esc(t)}</option>`).join("")}
+              </select>
+            </div>
           </div>
           <label style="margin-top:14px">Isi Materi</label>
           <div class="quill-wrapper" style="margin-bottom:16px">
@@ -262,13 +309,17 @@ function sM(id) {
   }
 
   const existing = D.materi.find((x) => x.id === id);
+  const now = Date.now();
   const o = {
     id: id || Store.uid("m"),
     judul: $("#j").value.trim(),
+    topik: $("#topik")?.value || existing?.topik || "Umum",
     kategori: existing?.kategori || "Umum",
     ringkasan: cuplikan(isiContent),
     video: existing?.video || "",
     isi: isiContent,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
   };
   if (!o.judul) return toast("Judul wajib diisi");
   up(D.materi, o);
