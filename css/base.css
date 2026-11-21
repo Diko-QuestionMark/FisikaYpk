@@ -27,6 +27,14 @@
   margin: 0;
 }
 
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+}
+
 body {
   font:
     16px/1.65 "Plus Jakarta Sans",
