@@ -332,7 +332,7 @@
 .qe-card input:focus,
 .qe-card textarea:focus,
 .qe-card select:focus {
-  border-color: #0284c7;
+  border-color: var(--primary);
   outline: none;
 }
 
@@ -440,7 +440,7 @@
 }
 
 .qe-opt-row input[type="text"]:focus {
-  border-color: #0284c7;
+  border-color: var(--primary);
   outline: none;
 }
 
@@ -615,21 +615,14 @@
   background: #f0f9ff;
 }
 
-/* Bottom Bar */
-.qe-bottom-bar {
+/* Actions di Kolom Pertanyaan */
+.qe-main-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 16px 0 24px;
+  gap: 12px;
   flex-wrap: wrap;
-}
-
-.qe-bottom-left,
-.qe-bottom-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  padding: 6px 0 24px;
 }
 
 .qe-btn-outline {
@@ -689,18 +682,12 @@
     flex-direction: column;
     align-items: stretch;
   }
-  .qe-bottom-bar {
+  .qe-main-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  .qe-bottom-left,
-  .qe-bottom-right {
+  .qe-main-actions > * {
     width: 100%;
-    justify-content: stretch;
-  }
-  .qe-bottom-left > *,
-  .qe-bottom-right > * {
-    flex: 1;
     text-align: center;
   }
 }

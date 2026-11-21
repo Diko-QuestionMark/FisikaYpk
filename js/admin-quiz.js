@@ -143,6 +143,17 @@ function pQuiz() {
 
       <!-- Soal Cards -->
       ${soalCards}
+
+      <!-- Actions di bawah kolom pertanyaan -->
+      <div class="qe-main-actions">
+        <div>
+          ${Q.tipe === "native" ? `<button type="button" class="qe-btn-outline" onclick="tambahSoalBaru()">+ Tambah soal</button>` : ""}
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button type="button" class="qe-btn-outline" onclick="pratinjauKuis()">Pratinjau</button>
+          <button type="button" class="qe-btn-save" onclick="sQ()">Simpan kuis</button>
+        </div>
+      </div>
     </div>
 
     <!-- Sidebar Navigasi Soal -->
@@ -166,17 +177,6 @@ function pQuiz() {
     `
         : ""
     }
-  </div>
-
-  <!-- Bottom Bar -->
-  <div class="qe-bottom-bar">
-    <div class="qe-bottom-left">
-      ${Q.tipe === "native" ? `<button type="button" class="qe-btn-outline" onclick="tambahSoalBaru()">+ Tambah soal</button>` : ""}
-    </div>
-    <div class="qe-bottom-right">
-      <button type="button" class="qe-btn-outline" onclick="pratinjauKuis()">Pratinjau</button>
-      <button type="button" class="qe-btn-save" onclick="sQ()">Simpan kuis</button>
-    </div>
   </div>
 
   ${renderQuizSettingsModal()}

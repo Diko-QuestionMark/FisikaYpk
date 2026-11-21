@@ -57,6 +57,12 @@ a {
   outline-offset: 2px;
 }
 
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
 .wrap {
   max-width: 1040px;
   margin: 0 auto;

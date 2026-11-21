@@ -189,7 +189,7 @@ function quiz(id) {
     const q = D.quiz.find(x => x.id === id && x.tipe === 'native');
 
     if (!q) {
-        a.innerHTML = `<h2>Quiz</h2><p class="sub">Uji pemahaman dan asah kemampuan fisikamu lewat latihan kuis interaktif.</p>${cards(D.quiz, 'q')}`;
+        a.innerHTML = `<h2>Quiz</h2><p class="sub">Uji pemahaman fisikamu lewat latihan kuis.</p>${cards(D.quiz, 'q')}`;
         return;
     }
 
