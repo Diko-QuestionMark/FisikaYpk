@@ -1,6 +1,5 @@
 /* =====================================================
-   MAIN.CSS — Entry Point
-   Import urutan penting: base → komponen → halaman → fitur
+   MAIN.CSS — Entry Point (urutan import penting)
    ===================================================== */
 
 @import url("./base.css?v=55");

@@ -3,19 +3,16 @@
                 Live Preview Frame HP/Laptop
    ===================================================== */
 
-/* =========================
-   QUILL EDITOR
-========================= */
-
+/* Quill Editor */
 .quill-wrapper {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: var(--radius-sm);
 }
 
 .ql-toolbar.ql-snow {
   border-color: var(--border) !important;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
-  background: #f8fafc !important;
+  background: var(--bg) !important;
   font-family: inherit;
   padding: 10px 12px !important;
   position: sticky;
@@ -27,7 +24,7 @@
 .ql-toolbar.ql-snow button,
 .ql-toolbar.ql-snow .ql-picker-label {
   border-radius: 6px !important;
-  transition: all 0.15s ease !important;
+  transition: all var(--ease) !important;
 }
 
 .ql-toolbar.ql-snow button:hover,
@@ -50,7 +47,7 @@
   border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
   font-family: "Plus Jakarta Sans", system-ui, sans-serif !important;
   font-size: 16px !important;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .ql-editor {
@@ -58,40 +55,16 @@
   font-size: 16px !important;
   line-height: 1.75 !important;
   color: #1e293b !important;
-  caret-color: var(--primary); /* Garis kursor ketik menyala tajam */
+  caret-color: var(--primary);
   padding: 20px 24px !important;
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
-.ql-editor p {
-  margin-bottom: 16px;
-  line-height: 1.75;
-}
-
-.ql-editor h1 {
-  font-size: 26px !important;
-  font-weight: 800 !important;
-  line-height: 1.3 !important;
-  margin: 28px 0 12px !important;
-  color: var(--text) !important;
-}
-
-.ql-editor h2 {
-  font-size: 22px !important;
-  font-weight: 700 !important;
-  line-height: 1.35 !important;
-  margin: 24px 0 10px !important;
-  color: var(--text) !important;
-}
-
-.ql-editor h3 {
-  font-size: 18px !important;
-  font-weight: 700 !important;
-  line-height: 1.4 !important;
-  margin: 20px 0 8px !important;
-  color: var(--text) !important;
-}
+.ql-editor p { margin-bottom: 16px; line-height: 1.75; }
+.ql-editor h1 { font-size: 26px !important; font-weight: 800 !important; line-height: 1.3 !important; margin: 28px 0 12px !important; color: var(--text) !important; }
+.ql-editor h2 { font-size: 22px !important; font-weight: 700 !important; line-height: 1.35 !important; margin: 24px 0 10px !important; color: var(--text) !important; }
+.ql-editor h3 { font-size: 18px !important; font-weight: 700 !important; line-height: 1.4 !important; margin: 20px 0 8px !important; color: var(--text) !important; }
 
 .ql-editor pre.ql-syntax,
 .ql-editor pre,
@@ -101,40 +74,24 @@
   padding: 14px 18px !important;
   border-radius: 8px !important;
   margin: 18px 0 !important;
-  color: #0f172a !important;
-  font:
-    15px/1.5 ui-monospace,
-    monospace !important;
+  color: var(--text) !important;
+  font: 15px/1.5 ui-monospace, monospace !important;
 }
 
 .ql-editor .ql-code-block {
   font: inherit !important;
   color: inherit !important;
   background: transparent !important;
-  border: none !important;
+  border: 0 !important;
   padding: 0 !important;
   margin: 0 !important;
 }
 
 .ql-editor.ql-blank::before {
   font-family: "Plus Jakarta Sans", sans-serif;
-  color: #94a3b8;
+  color: var(--text-placeholder);
   font-style: normal;
   left: 24px;
-}
-
-/* Quill + read shared iframe style */
-.ql-editor iframe,
-.ql-editor .ql-video {
-  aspect-ratio: 16 / 9 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  border: 0;
-  border-radius: 12px;
-  margin: 20px 0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  display: block;
 }
 
 /* Quill Image Resizer */
@@ -142,7 +99,7 @@
   border-radius: 8px !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
   border: 1px solid var(--border) !important;
-  background: #ffffff !important;
+  background: var(--surface) !important;
 }
 
 #editor-resizer .toolbar .group {
@@ -163,21 +120,18 @@
 }
 
 #editor-resizer .toolbar .btn:hover {
-  background: #f1f5f9 !important;
+  background: var(--bg-subtle) !important;
   color: var(--primary) !important;
 }
 
 #editor-resizer .handler {
   border-radius: 2px !important;
   background-color: var(--primary) !important;
-  border: 1.5px solid #ffffff !important;
+  border: 1.5px solid #fff !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* =========================
-   MATERI 2-COLUMN SPLIT VIEW
-========================= */
-
+/* Split View Materi */
 .materi-editor-layout {
   display: grid;
   grid-template-columns: minmax(420px, 1.15fr) minmax(380px, 0.85fr);
@@ -186,28 +140,20 @@
   width: 100%;
 }
 
-@media (max-width: 1100px) {
-  .materi-editor-layout {
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-}
-
-.materi-editor-pane {
+.materi-editor-pane,
+.materi-preview-pane {
   min-width: 0;
 }
 
 .materi-preview-pane {
-  min-width: 0;
-  position: -webkit-sticky;
   position: sticky;
   top: 16px;
   height: fit-content;
 }
 
 .preview-card-sticky {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
@@ -218,8 +164,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 18px;
-  background: #f8fafc;
-  border-bottom: 1.5px solid #e2e8f0;
+  background: var(--bg);
+  border-bottom: 1.5px solid var(--border);
 }
 
 .preview-badge-live {
@@ -228,7 +174,7 @@
   gap: 7px;
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text);
 }
 
 .preview-dot-pulse {
@@ -240,44 +186,46 @@
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
 }
 
-/* =========================
-   LIVE PREVIEW STAGE (FRAME HP/LAPTOP)
-========================= */
-
+/* Live Preview Stage (Frame HP / Laptop) */
 .live-preview-stage {
   padding: 24px;
-  background: #f1f5f9;
+  background: var(--bg-subtle);
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 680px;
-  box-sizing: border-box;
 }
 
-/* Frame HP */
-.live-preview-stage.mobile .live-preview-screen {
-  width: 360px;
+.live-preview-screen {
   height: 640px;
-  border-radius: 38px;
-  border: 11px solid #0f172a;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.22);
-  background: #ffffff;
-  position: relative;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-sizing: border-box;
+}
+
+.live-preview-stage.mobile .live-preview-screen {
+  width: 360px;
+  border-radius: 38px;
+  border: 11px solid var(--text);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.22);
+  position: relative;
   flex-shrink: 0;
 }
 
-/* Notch & Home Bar */
+.live-preview-stage.desktop .live-preview-screen {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border-strong);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
 .device-notch {
   width: 100px;
   height: 16px;
-  background: #0f172a;
+  background: var(--text);
   margin: 0 auto;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
+  border-radius: 0 0 12px 12px;
   flex-shrink: 0;
   z-index: 2;
 }
@@ -290,10 +238,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.device-screen-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-
+.device-screen-scroll::-webkit-scrollbar { width: 4px; }
 .device-screen-scroll::-webkit-scrollbar-thumb {
   background: rgba(15, 23, 42, 0.2);
   border-radius: 4px;
@@ -302,25 +247,10 @@
 .device-home-bar {
   width: 100px;
   height: 4px;
-  background: #cbd5e1;
+  background: var(--border-strong);
   border-radius: 999px;
   margin: 6px auto 8px;
   flex-shrink: 0;
-}
-
-/* Frame Laptop */
-.live-preview-stage.desktop .live-preview-screen {
-  width: 100%;
-  max-width: 100%;
-  height: 640px;
-  border-radius: 14px;
-  border: 1.5px solid #cbd5e1;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-sizing: border-box;
 }
 
 .live-preview-stage.desktop .device-notch,
@@ -328,72 +258,27 @@
   display: none;
 }
 
-.live-preview-stage.desktop .device-screen-scroll {
-  padding: 24px 30px;
-}
+.live-preview-stage.desktop .device-screen-scroll { padding: 24px 30px; }
 
-/* Read dalam frame preview */
+/* Read di dalam Live Preview */
 .live-preview-screen .read {
   box-shadow: none !important;
-  border: none !important;
+  border: 0 !important;
   background: transparent !important;
 }
 
-.live-preview-stage.mobile .live-preview-screen .read {
-  padding: 14px 16px 24px !important;
-}
-
-/* ===================================================
-   STANDAR TYPOGRAPHY AKURAT LAYAR HP (360PX) - COMPACT
-=================================================== */
-
-.live-preview-stage.mobile .read-header {
-  padding-bottom: 10px !important;
-  margin-bottom: 12px !important;
-}
-
-.live-preview-stage.mobile .read h1 {
-  font-size: 17.5px !important;
-  line-height: 1.3 !important;
-  margin: 0 0 8px !important;
-  letter-spacing: -0.01em !important;
-}
-
-.live-preview-stage.mobile .read-meta {
-  font-size: 11px !important;
-  gap: 6px !important;
-}
-
-.live-preview-stage.mobile .read-body {
-  font-size: 13.5px !important;
-  line-height: 1.55 !important;
-  color: #1e293b !important;
-}
-
-.live-preview-stage.mobile .read h2,
-.live-preview-stage.mobile .read-body h2 {
-  font-size: 15px !important;
-  margin: 16px 0 6px !important;
-  line-height: 1.35 !important;
-}
-
-.live-preview-stage.mobile .read h3,
-.live-preview-stage.mobile .read-body h3 {
-  font-size: 13.5px !important;
-  margin: 12px 0 4px !important;
-  line-height: 1.4 !important;
-}
-
-.live-preview-stage.mobile .read p,
-.live-preview-stage.mobile .read-body p {
-  margin-bottom: 10px !important;
-  line-height: 1.55 !important;
-}
+.live-preview-stage.desktop .live-preview-screen .read { padding: 28px 30px !important; }
+.live-preview-stage.mobile .live-preview-screen .read { padding: 14px 16px 24px !important; }
+.live-preview-stage.mobile .read-header { padding-bottom: 10px !important; margin-bottom: 12px !important; }
+.live-preview-stage.mobile .read h1 { font-size: 17.5px !important; line-height: 1.3 !important; margin: 0 0 8px !important; letter-spacing: -0.01em !important; }
+.live-preview-stage.mobile .read-meta { font-size: 11px !important; gap: 6px !important; }
+.live-preview-stage.mobile .read-body { font-size: 13.5px !important; line-height: 1.55 !important; color: #1e293b !important; }
+.live-preview-stage.mobile .read h2 { font-size: 15px !important; margin: 16px 0 6px !important; line-height: 1.35 !important; }
+.live-preview-stage.mobile .read h3 { font-size: 13.5px !important; margin: 12px 0 4px !important; line-height: 1.4 !important; }
+.live-preview-stage.mobile .read p { margin-bottom: 10px !important; line-height: 1.55 !important; }
 
 .live-preview-stage.mobile .read pre,
-.live-preview-stage.mobile .read-body pre,
-.live-preview-stage.mobile .read .ql-code-block-container,
-.live-preview-stage.mobile .read-body .ql-code-block-container {
+.live-preview-stage.mobile .read .ql-code-block-container {
   padding: 8px 10px !important;
   margin: 8px 0 !important;
   font-size: 12px !important;
@@ -407,14 +292,7 @@
   font-size: 13.5px !important;
 }
 
-.live-preview-stage.mobile .read li {
-  margin-bottom: 3px !important;
-  line-height: 1.5 !important;
-}
-
-.live-preview-stage.desktop .live-preview-screen .read {
-  padding: 28px 30px !important;
-}
+.live-preview-stage.mobile .read li { margin-bottom: 3px !important; line-height: 1.5 !important; }
 
 .live-preview-stage.mobile .read img,
 .live-preview-stage.mobile .read img[style*="float"],
@@ -429,17 +307,14 @@
 }
 
 .live-preview-stage .read iframe {
-  width: 100% !important;
-  max-width: 100% !important;
-  aspect-ratio: 16 / 9;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   margin: 12px 0;
 }
 
-/* Toggle HP/Laptop */
+/* Toggle HP / Laptop */
 .preview-toggle-group {
   display: flex;
-  background: #f1f5f9;
+  background: var(--bg-subtle);
   padding: 4px;
   border-radius: 999px;
   gap: 4px;
@@ -450,7 +325,6 @@
   background: transparent;
   padding: 7px 18px;
   border-radius: 999px;
-  font-family: inherit;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
@@ -459,7 +333,11 @@
 }
 
 .preview-toggle.active {
-  background: #ffffff;
+  background: var(--surface);
   color: var(--primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 1100px) {
+  .materi-editor-layout { grid-template-columns: 1fr; align-items: start; }
 }

@@ -106,7 +106,7 @@ function draw() {
   if (!isAuth()) return;
   $("#sidenav").innerHTML = TABS.map(
     (t) =>
-      `<button class="sidebar-item${tab === t[0] ? " active" : ""}" onclick="tab='${t[0]}';edit=null;curMasterKls=null;editMaster=false;draw();if(window.innerWidth<=768)$('#sidebar').classList.remove('open')"><span class="sidebar-icon">${t[1]}</span>${t[2]}</button>`,
+      `<button class="sidebar-item${tab === t[0] ? " active" : ""}" onclick="tab='${t[0]}';edit=null;curMasterKls=null;editMaster=false;curAbsenKls=null;A=null;draw();if(window.innerWidth<=768)$('#sidebar').classList.remove('open')"><span class="sidebar-icon">${t[1]}</span>${t[2]}</button>`,
   ).join("");
   const curTab = TABS.find((t) => t[0] === tab);
   $("#topbar").innerHTML = `<div style="display:flex;align-items:center;gap:12px">
@@ -271,4 +271,3 @@ function initAdmin() {
     NeonDB.updateBadge();
   });
 }
-

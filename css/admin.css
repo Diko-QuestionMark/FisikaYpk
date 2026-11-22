@@ -2,14 +2,17 @@
    ADMIN.CSS — Sidebar, Layout Admin, Panel, Form
    ===================================================== */
 
-/* =========================
-   ADMIN LAYOUT
-========================= */
-
-.admin-layout {
+.admin-layout,
+.admin-main {
   display: flex;
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+.admin-main {
+  flex: 1;
+  margin-left: 250px;
+  flex-direction: column;
 }
 
 .sidebar {
@@ -19,9 +22,7 @@
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
+  inset: 0 auto 0 0;
   z-index: 10;
   padding: 20px 0;
 }
@@ -62,7 +63,7 @@
   width: 100%;
   gap: 10px;
   background: none;
-  border: none;
+  border: 0;
   color: rgba(255, 255, 255, 0.65);
   font: inherit;
   font-size: 14px;
@@ -71,9 +72,7 @@
   border-radius: 9px;
   cursor: pointer;
   text-align: left;
-  transition:
-    background 0.15s,
-    color 0.15s;
+  transition: background var(--ease), color var(--ease);
 }
 
 .sidebar-item:hover {
@@ -108,15 +107,6 @@
   color: #fff;
 }
 
-.admin-main {
-  flex: 1;
-  margin-left: 250px;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-
 .admin-topbar {
   display: none;
 }
@@ -125,62 +115,13 @@
   padding: 32px 36px;
   flex: 1;
   width: 100%;
-  box-sizing: border-box;
 }
 
 .mobile-toggle {
   display: none !important;
 }
 
-/* Sidebar responsive */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 220px;
-    transform: translateX(-100%);
-    transition: transform 0.25s;
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .admin-main {
-    margin-left: 0;
-  }
-
-  .admin-content {
-    padding: 20px 16px;
-  }
-
-  .admin-topbar {
-    display: flex;
-    align-items: center;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 16px;
-    position: sticky;
-    top: 0;
-    z-index: 5;
-  }
-
-  .admin-topbar h2 {
-    margin: 0;
-    font-size: 18px;
-  }
-
-  .ql-toolbar.ql-snow {
-    top: 57px;
-  }
-
-  .mobile-toggle {
-    display: inline-flex !important;
-  }
-}
-
-/* =========================
-   ADMIN PANEL & FORM
-========================= */
-
+/* Panel & Form */
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -206,7 +147,7 @@ textarea {
   border-radius: 9px;
   background: var(--surface);
   color: var(--text);
-  transition: border-color 0.15s ease;
+  transition: border-color var(--ease);
 }
 
 input:focus,
@@ -253,9 +194,31 @@ textarea {
   gap: 16px;
 }
 
+/* Responsive */
 @media (max-width: 768px) {
-  .form-grid-2 {
-    grid-template-columns: 1fr;
-    gap: 0;
+  .sidebar {
+    width: 220px;
+    transform: translateX(-100%);
+    transition: transform 0.25s;
   }
+
+  .sidebar.open { transform: translateX(0); }
+  .admin-main { margin-left: 0; }
+  .admin-content { padding: 20px 16px; }
+
+  .admin-topbar {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  .admin-topbar h2 { margin: 0; font-size: 18px; }
+  .ql-toolbar.ql-snow { top: 57px; }
+  .mobile-toggle { display: inline-flex !important; }
+  .form-grid-2 { grid-template-columns: 1fr; gap: 0; }
 }
