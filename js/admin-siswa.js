@@ -69,6 +69,7 @@ function pSiswa() {
       .join("");
 
     return `
+      ${renderBreadcrumb([{ label: "Data Siswa" }])}
       <div class="crud-header">
         <div class="crud-search-wrap">
           ${ICON_SEARCH}
@@ -83,8 +84,15 @@ function pSiswa() {
   }
 
   const list = D.kelas_siswa[curMasterKls] || [];
+  const klsLabel = curMasterKls.startsWith("Kelas") ? curMasterKls : `Kelas ${curMasterKls}`;
 
-  return `<div class="panel">
+  return `
+    ${renderBreadcrumb([
+      { label: "Data Siswa", onClick: "curMasterKls=null;draw()" },
+      { label: klsLabel, onClick: "draw()" },
+      { label: "Nama siswa" },
+    ])}
+    <div class="panel">
     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
       <h3 style="margin:0">Edit Siswa: Kelas ${esc(curMasterKls)}</h3>
       <span class="hint">(${list.length} Siswa)</span>

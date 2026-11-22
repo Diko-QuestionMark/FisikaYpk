@@ -30,6 +30,13 @@ function pQuiz() {
       .join("");
 
     return `
+      ${filterTopikQuiz === "Semua"
+        ? renderBreadcrumb([{ label: "Quiz" }])
+        : renderBreadcrumb([
+            { label: "Quiz", onClick: "filterTopikQuiz='Semua';draw()" },
+            { label: filterTopikQuiz }
+          ])
+      }
       <div class="crud-header">
         <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap">
           <div class="crud-search-wrap">
@@ -115,7 +122,20 @@ function pQuiz() {
         : Q.soal.map((s, n) => renderSoalCard(s, n)).join("")
       : "";
 
-  return `<div class="qe-layout">
+  const crumbs = [
+    { label: "Quiz", onClick: "edit=null;draw()" },
+  ];
+  if (filterTopikQuiz !== "Semua") {
+    crumbs.push({
+      label: filterTopikQuiz,
+      onClick: "edit=null;draw()",
+    });
+  }
+  crumbs.push({ label: edit === "new" ? "Tambah kuis" : "Edit kuis" });
+
+  return `
+    ${renderBreadcrumb(crumbs)}
+    <div class="qe-layout">
     <div class="qe-main">
       <!-- Judul, Topik & Deskripsi Card -->
       <div class="qe-card qe-card-header">
@@ -310,8 +330,8 @@ function renderSoalCard(s, n) {
       <button type="button" class="qe-btn-add-opt" onclick="tambahOpsi(${n})">+ Tambah opsi</button>
 
       <div style="margin-top:12px">
-        <label>Pembahasan (opsional)</label>
-        <input data-n="${n}" data-f="e" value="${esc(s.e || "")}" placeholder="Penjelasan jawaban atau rumus...">
+        <label>Pembahasan</label>
+        <input data-n="${n}" data-f="e" value="${esc(s.e || "")}" placeholder="Opsional">
       </div>
     </div>
   `;

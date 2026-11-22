@@ -89,6 +89,13 @@ function pMateri() {
       .join("");
 
     return `
+      ${filterTopikMateri === "Semua"
+        ? renderBreadcrumb([{ label: "Materi" }])
+        : renderBreadcrumb([
+            { label: "Materi", onClick: "filterTopikMateri='Semua';draw()" },
+            { label: TOPIK_MAP[filterTopikMateri] || filterTopikMateri }
+          ])
+      }
       <div class="crud-header">
         <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap">
           <div class="crud-search-wrap">
@@ -122,7 +129,19 @@ function pMateri() {
 
   const curTopik = normalizeTopik(m.topik);
 
+  const crumbs = [
+    { label: "Materi", onClick: "edit=null;quillMateri=null;draw()" },
+  ];
+  if (filterTopikMateri !== "Semua") {
+    crumbs.push({
+      label: TOPIK_MAP[filterTopikMateri] || filterTopikMateri,
+      onClick: "edit=null;quillMateri=null;draw()",
+    });
+  }
+  crumbs.push({ label: m.id ? "Edit materi" : "Tambah materi" });
+
   return `
+    ${renderBreadcrumb(crumbs)}
     <div class="materi-editor-layout">
       <!-- Kolom Kiri: Editor Form -->
       <div class="materi-editor-pane">

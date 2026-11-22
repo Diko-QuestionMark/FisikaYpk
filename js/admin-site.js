@@ -1,7 +1,9 @@
 /* Modul Pengaturan Website & Cadangan Data */
 function pSite() {
   const s = D.site;
-  return `<div class="panel">
+  return `
+    ${renderBreadcrumb([{ label: "Pengaturan" }])}
+    <div class="panel">
     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
       <h3 style="margin:0">Pengaturan Website</h3>
     </div>
@@ -25,7 +27,12 @@ function pSite() {
 }
 
 function pData() {
-  return `<div class="panel">
+  return `
+    ${renderBreadcrumb([
+      { label: "Pengaturan", onClick: "tab='site';draw()" },
+      { label: "Cadangan Data" },
+    ])}
+    <div class="panel">
     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
       <h3 style="margin:0">Cadangan Data</h3>
     </div>

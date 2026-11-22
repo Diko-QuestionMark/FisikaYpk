@@ -1035,3 +1035,238 @@
 .status-btn.s.active { background: #0284c7; color: #fff; border-color: #0284c7; }
 .status-btn.i.active { background: #d97706; color: #fff; border-color: #d97706; }
 .status-btn.a.active { background: #dc2626; color: #fff; border-color: #dc2626; }
+
+/* =========================
+   ADMIN ABSENSI / PRESENSI LAYOUT
+========================= */
+
+.absen-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-areas:
+    "form sidebar"
+    "list sidebar";
+  gap: 20px;
+  align-items: start;
+}
+
+.absen-form-section {
+  grid-area: form;
+}
+
+.absen-sidebar {
+  grid-area: sidebar;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 20px;
+}
+
+.absen-list-section {
+  grid-area: list;
+}
+
+.absen-summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.absen-summary-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+.absen-percent-box {
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.absen-percent-num {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.1;
+  display: block;
+}
+
+.absen-percent-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+}
+
+.absen-progress-wrap {
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.absen-progress-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.absen-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.absen-stat-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.absen-stat-item.h {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.absen-stat-item.s {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.absen-stat-item.i {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.absen-stat-item.a {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.absen-stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.absen-stat-count {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.absen-stat-pending {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.absen-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 840px) {
+  .absen-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "form"
+      "sidebar"
+      "list";
+    gap: 16px;
+  }
+
+  .absen-sidebar {
+    position: static;
+    width: 100%;
+  }
+
+  .absen-stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .absen-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* =========================
+   BREADCRUMB COMPONENT
+========================= */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.breadcrumb-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.breadcrumb-text {
+  color: var(--text-muted);
+}
+
+.breadcrumb-separator {
+  color: var(--text-muted);
+  opacity: 0.55;
+  user-select: none;
+  font-weight: 400;
+}
+
+.breadcrumb-current {
+  color: var(--text);
+  font-weight: 600;
+  user-select: none;
+}
+

@@ -26,7 +26,7 @@ const save = () => {
 const TABS = [
   ["materi", "📚", "Materi"],
   ["quiz", "✏️", "Quiz"],
-  ["absen", "📋", "Presensi"],
+  ["absen", "📋", "Absensi"],
   ["siswa", "👥", "Data Siswa"],
   ["site", "⚙️", "Pengaturan"],
 ];
@@ -125,6 +125,29 @@ function draw() {
 }
 
 /* Helper Komponen UI Bersama - Modern Clean Cards (Gambar 2 Reference) */
+function renderBreadcrumb(items = []) {
+  if (!items || !items.length) return "";
+  const listHtml = items
+    .map((item, idx) => {
+      const isLast = idx === items.length - 1;
+      const label = esc(item.label || "");
+      if (isLast) {
+        return `<span class="breadcrumb-item breadcrumb-current" aria-current="page">${label}</span>`;
+      }
+      const clickAttr = item.onClick
+        ? typeof item.onClick === "function"
+          ? `onclick="(${item.onClick.toString()})()"`
+          : `onclick="${item.onClick}"`
+        : "";
+      if (!clickAttr) {
+        return `<span class="breadcrumb-item"><span class="breadcrumb-text">${label}</span><span class="breadcrumb-separator" aria-hidden="true">›</span></span>`;
+      }
+      return `<span class="breadcrumb-item"><button type="button" class="breadcrumb-link" ${clickAttr}>${label}</button><span class="breadcrumb-separator" aria-hidden="true">›</span></span>`;
+    })
+    .join("");
+  return `<nav class="breadcrumb" aria-label="Breadcrumb">${listHtml}</nav>`;
+}
+
 function hitungWaktuBaca(htmlOrText) {
   if (!htmlOrText) return "1 menit baca";
   const div = document.createElement("div");

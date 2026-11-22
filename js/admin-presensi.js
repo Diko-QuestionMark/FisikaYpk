@@ -1,6 +1,16 @@
 /* Modul Presensi & Rekap Excel */
 let A, filterKelas = "Semua";
 
+function getAbsenPertemuanLabel(aObj) {
+  if (!aObj || !aObj.kelas) return aObj && aObj.id ? "Ubah Presensi" : "Tambah Presensi";
+  const classList = (D.absen || [])
+    .filter((x) => x.kelas === aObj.kelas)
+    .sort((a, b) => String(a.tanggal || "").localeCompare(String(b.tanggal || "")));
+  const idx = classList.findIndex((x) => x.id === aObj.id);
+  const num = idx !== -1 ? idx + 1 : classList.length + 1;
+  return `Pertemuan ${num}`;
+}
+
 function pAbsen() {
   if (!edit) {
     const allList = [...(D.absen || [])].reverse().sort((a, b) => {
@@ -39,6 +49,13 @@ function pAbsen() {
       .join("");
 
     return `
+      ${filterKelas === "Semua"
+        ? renderBreadcrumb([{ label: "Absensi" }])
+        : renderBreadcrumb([
+            { label: "Absensi", onClick: "filterKelas='Semua';draw()" },
+            { label: filterKelas.startsWith("Kelas") ? filterKelas : "Kelas " + filterKelas }
+          ])
+      }
       <div class="crud-header">
         <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap">
           <div class="crud-search-wrap">
@@ -76,70 +93,138 @@ function pAbsen() {
     A._for = edit;
   }
 
-  return `<div class="panel">
-    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3 style="margin:0">${A.id ? "Ubah" : "Tambah"} Presensi</h3>
-    </div>
-    <div class="row" style="gap:14px;margin-top:10px">
-      <div style="flex:1;min-width:200px">
-        <label>Tanggal</label>
-        <input type="date" id="a_tgl" value="${esc(A.tanggal)}" onchange="syncA();draw()">
-      </div>
-      <div style="flex:1;min-width:200px">
-        <label>Pilih Kelas</label>
-        <select id="a_kls" onchange="onAbsenKelasChange(this.value)">
-          <option value="" ${!A.kelas ? "selected" : ""}>-- Pilih Kelas --</option>
-          ${getKelasList().map((k) => `<option value="${k}" ${A.kelas === k ? "selected" : ""}>${k}</option>`).join("")}
-        </select>
-      </div>
-    </div>
-    <div style="margin-top:10px">
-      <label>Topik Pembelajaran</label>
-      <input id="a_topik" value="${esc(A.topik)}" placeholder="Topik bahasan">
-    </div>
+  /* Perhitungan ringkasan otomatis */
+  const totalSiswa = A.siswa.length;
+  const countH = A.siswa.filter((s) => s.status === "Hadir").length;
+  const countS = A.siswa.filter((s) => s.status === "Sakit").length;
+  const countI = A.siswa.filter((s) => s.status === "Izin").length;
+  const countA = A.siswa.filter((s) => s.status === "Alpa").length;
+  const countBelum = A.siswa.filter((s) => !s.status).length;
+  const persenHadir = totalSiswa ? Math.round((countH / totalSiswa) * 100) : 0;
 
-    <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px">
-      <div style="margin-bottom:12px;font-weight:700">
-        Kehadiran Siswa ${A.kelas ? "Kelas " + esc(A.kelas) + " (" + A.siswa.length + " siswa)" : ""}
-      </div>
+  const klsLabel = A.kelas ? (A.kelas.startsWith("Kelas") ? A.kelas : `Kelas ${A.kelas}`) : "";
+  const pertemuanLabel = getAbsenPertemuanLabel(A);
 
-      <div style="display:flex;flex-direction:column;gap:8px" id="siswa_list">
-        ${A.siswa.length
-      ? A.siswa
-        .map(
-          (s, idx) => `
-          <div class="item" style="padding:10px 12px;gap:12px;background:var(--bg);border-radius:8px;border-bottom:none">
-            <div style="flex:1;min-width:180px;display:flex;align-items:center;gap:10px">
-              <span style="font-size:13px;color:var(--text-muted);font-weight:700;width:24px;text-align:right">${idx + 1}.</span>
-              <span style="font-weight:700;font-size:14px;color:var(--text)">${esc(s.nama)}</span>
+  const crumbs = [
+    { label: "Absensi", onClick: "edit=null;A=null;filterKelas='Semua';draw()" },
+  ];
+  if (klsLabel) {
+    crumbs.push({
+      label: klsLabel,
+      onClick: `edit=null;A=null;filterKelas='${esc(A.kelas)}';draw()`,
+    });
+  }
+  crumbs.push({ label: pertemuanLabel });
+
+  return `
+    ${renderBreadcrumb(crumbs)}
+    <div class="absen-layout">
+      <!-- Kolom Kiri Bagian 1: Form Tanggal, Pilih Kelas, Topik -->
+      <div class="absen-form-section">
+        <div class="panel" style="margin-bottom:0">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="margin:0">${A.id ? "Ubah" : "Tambah"} Presensi</h3>
+          </div>
+          <div class="form-grid-2">
+            <div>
+              <label style="margin-top:0">Tanggal</label>
+              <input type="date" id="a_tgl" value="${esc(A.tanggal)}" onchange="syncA();draw()">
             </div>
-            <div class="status-btn-group" data-idx="${idx}">
-              <button type="button" class="status-btn h ${s.status === 'Hadir' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Hadir')">H</button>
-              <button type="button" class="status-btn s ${s.status === 'Sakit' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Sakit')">S</button>
-              <button type="button" class="status-btn i ${s.status === 'Izin' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Izin')">I</button>
-              <button type="button" class="status-btn a ${s.status === 'Alpa' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Alpa')">A</button>
-            </div>
-            <div style="width:200px">
-              <input data-idx="${idx}" data-field="catatan" value="${esc(s.catatan || '')}" placeholder="Catatan" style="padding:6px 10px;font-size:13px;background:var(--surface)">
+            <div>
+              <label style="margin-top:0">Pilih Kelas</label>
+              <select id="a_kls" onchange="onAbsenKelasChange(this.value)">
+                <option value="" ${!A.kelas ? "selected" : ""}>-- Pilih Kelas --</option>
+                ${getKelasList().map((k) => `<option value="${k}" ${A.kelas === k ? "selected" : ""}>Kelas ${k}</option>`).join("")}
+              </select>
             </div>
           </div>
-        `,
-        )
-        .join("")
-      : !A.kelas
-        ? `<div class="empty" style="padding:24px">Pilih kelas terlebih dahulu.</div>`
-        : `<div class="empty" style="padding:24px">Kelas <b>${esc(A.kelas)}</b> belum memiliki data siswa.</div>`
-    }
+          <div style="margin-top:14px">
+            <label style="margin-top:0">Topik Pembelajaran</label>
+            <input id="a_topik" value="${esc(A.topik)}" placeholder="Topik bahasan materi...">
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
-      <div class="row" style="gap:8px">
-        <button class="btn" onclick="sA()">Simpan</button>
-        <button class="btn ghost" onclick="edit=null;A=null;draw()">Batal</button>
+      <!-- Kolom Kanan: Kartu Ringkasan (Sticky 280px) -->
+      <div class="absen-sidebar">
+        <div class="absen-summary-card">
+          <h4 class="absen-summary-title">Ringkasan Kehadiran</h4>
+
+          <div class="absen-percent-box">
+            <span class="absen-percent-num">${persenHadir}%</span>
+            <span class="absen-percent-label">Persentase Hadir</span>
+            <div class="absen-progress-wrap">
+              <div class="absen-progress-bar" style="width:${persenHadir}%"></div>
+            </div>
+          </div>
+
+          <div class="absen-stat-grid">
+            <div class="absen-stat-item h">
+              <span class="absen-stat-label">Hadir (H)</span>
+              <span class="absen-stat-count">${countH}</span>
+            </div>
+            <div class="absen-stat-item s">
+              <span class="absen-stat-label">Sakit (S)</span>
+              <span class="absen-stat-count">${countS}</span>
+            </div>
+            <div class="absen-stat-item i">
+              <span class="absen-stat-label">Izin (I)</span>
+              <span class="absen-stat-count">${countI}</span>
+            </div>
+            <div class="absen-stat-item a">
+              <span class="absen-stat-label">Alpa (A)</span>
+              <span class="absen-stat-count">${countA}</span>
+            </div>
+          </div>
+
+          ${countBelum > 0 ? `<div class="absen-stat-pending">Belum ditandai: <b>${countBelum}</b> dari ${totalSiswa} siswa</div>` : ""}
+
+          <div class="absen-sidebar-actions">
+            <button type="button" class="btn" style="width:100%;text-align:center" onclick="sA()">Simpan Absensi</button>
+            <button type="button" class="btn ghost" style="width:100%;text-align:center" onclick="edit=null;A=null;draw()">Batal</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kolom Kiri Bagian 2: Daftar Siswa -->
+      <div class="absen-list-section">
+        <div class="panel" style="margin-bottom:0">
+          <div style="margin-bottom:14px;font-weight:700;font-size:15px;color:var(--text)">
+            Kehadiran Siswa ${A.kelas ? "Kelas " + esc(A.kelas) + " (" + totalSiswa + " siswa)" : ""}
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px" id="siswa_list">
+            ${totalSiswa
+              ? A.siswa
+                .map(
+                  (s, idx) => `
+              <div class="item" style="padding:10px 12px;gap:12px;background:var(--bg);border-radius:var(--radius-sm);border-bottom:none">
+                <div style="flex:1;min-width:180px;display:flex;align-items:center;gap:10px">
+                  <span style="font-size:13px;color:var(--text-muted);font-weight:700;width:24px;text-align:right">${idx + 1}.</span>
+                  <span style="font-weight:700;font-size:14px;color:var(--text)">${esc(s.nama)}</span>
+                </div>
+                <div class="status-btn-group" data-idx="${idx}">
+                  <button type="button" class="status-btn h ${s.status === 'Hadir' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Hadir')">H</button>
+                  <button type="button" class="status-btn s ${s.status === 'Sakit' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Sakit')">S</button>
+                  <button type="button" class="status-btn i ${s.status === 'Izin' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Izin')">I</button>
+                  <button type="button" class="status-btn a ${s.status === 'Alpa' ? 'active' : ''}" onclick="setSiswaStatus(${idx}, 'Alpa')">A</button>
+                </div>
+                <div style="width:200px">
+                  <input data-idx="${idx}" data-field="catatan" value="${esc(s.catatan || '')}" placeholder="Catatan" style="padding:6px 10px;font-size:13px;background:var(--surface)">
+                </div>
+              </div>
+            `,
+                )
+                .join("")
+              : !A.kelas
+                ? `<div class="empty" style="padding:24px">Pilih kelas terlebih dahulu.</div>`
+                : `<div class="empty" style="padding:24px">Kelas <b>${esc(A.kelas)}</b> belum memiliki data siswa.</div>`
+            }
+          </div>
+        </div>
       </div>
     </div>
-  </div>`;
+  `;
 }
 
 function onAbsenKelasChange(val) {
