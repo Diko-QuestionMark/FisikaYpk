@@ -140,6 +140,7 @@ const Store = {
             d.absen = d.absen || [];
             d.daftar_kelas = Array.isArray(d.daftar_kelas) ? d.daftar_kelas : [];
             d.kelas_siswa = d.kelas_siswa || {};
+            d.kelas_pertemuan = d.kelas_pertemuan || {};
             return d;
         } catch (e) {
             const fallback = (typeof SEED_DATA !== 'undefined') ? structuredClone(SEED_DATA) : { site: { nama: 'FisikaKu', pin: 'FahrulPolman' }, materi: [], quiz: [], absen: [], daftar_kelas: [], kelas_siswa: {} };

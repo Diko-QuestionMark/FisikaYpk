@@ -22,6 +22,7 @@ function setNav(k) {
 }
 
 function route() {
+    run = null;
     D = Store.get();
     const currentHash = location.hash || '#home';
     const [k = 'home', id] = currentHash.slice(1).split('/');
@@ -70,13 +71,13 @@ function cards(l, t) {
             : `window.open('${esc(x.link)}','_blank')`;
         const isNative = x.tipe === 'native';
         const soalCount = isNative && Array.isArray(x.soal) ? x.soal.length : 0;
-        const estMenit = Math.max(5, Math.round(soalCount * 1.5));
+        const estMenit = x.durasi !== undefined ? (x.durasi || 'Bebas') : Math.max(5, Math.round(soalCount * 1.5));
         const diffLevel = x.level || (soalCount <= 5 ? 'Mudah' : (soalCount <= 10 ? 'Sedang' : 'Tantangan'));
         const btnLabel = isNative ? 'Mulai kuis' : 'Buka kuis ↗';
 
         const metaPills = isNative ? `
             <span class="quiz-meta-pill">✓ ${soalCount} soal</span>
-            <span class="quiz-meta-pill">⏱ ${estMenit} menit</span>
+            <span class="quiz-meta-pill">⏱ ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}</span>
             <span class="quiz-meta-pill">${diffLevel}</span>
         ` : `
             <span class="quiz-meta-pill">🌐 Eksternal</span>
@@ -176,7 +177,7 @@ function materi(id) {
                 </div>
                 ${legacyVid}
                 <div class="read-body">${fmt(m.isi)}</div>
-                ${quizCTA}
+                
             </article>
         </div>`;
 }
@@ -198,7 +199,7 @@ function quiz(id) {
 
 function quizIntro(q) {
     const a = document.getElementById('app');
-    const estMenit = Math.max(1, Math.round(q.soal.length * 1.5));
+    const durasiText = q.durasi === 0 ? 'Tanpa batas waktu' : `Estimasi ~${q.durasi || Math.max(1, Math.round(q.soal.length * 1.5))} Menit`;
 
     a.innerHTML = `
         <div class="content-wrapper">
@@ -211,8 +212,8 @@ function quizIntro(q) {
 
                 <div class="quiz-intro-meta">
                     <span class="quiz-intro-badge">📝 ${q.soal.length} Butir Soal</span>
-                    <span class="quiz-intro-badge">⏱️ Estimasi ~${estMenit} Menit</span>
-                    <span class="quiz-intro-badge">🎯 Pilihan Ganda (A–D)</span>
+                    <span class="quiz-intro-badge">⏱️ ${durasiText}</span>
+                    <span class="quiz-intro-badge">🎯 Pilihan Ganda</span>
                 </div>
 
                 <div class="quiz-rules-box">
@@ -233,10 +234,25 @@ function quizIntro(q) {
         </div>`;
 }
 
+function shuffleList(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
 function startQuiz(id) {
     const q = D.quiz.find(x => x.id === id && x.tipe === 'native');
     if (!q) return;
-    run = { q, i: 0, ans: [], lock: false };
+    let soalList = (q.soal || []).map(s => {
+        let opts = s.o.map((text, k) => ({ text, ok: k === s.a }));
+        if (q.acakOpsi) opts = shuffleList(opts);
+        return { q: s.q, e: s.e || '', o: opts.map(x => x.text), a: opts.findIndex(x => x.ok) };
+    });
+    if (q.acakSoal) soalList = shuffleList(soalList);
+    run = { q: { ...q, soal: soalList }, i: 0, ans: [], lock: false };
     step();
 }
 
@@ -273,7 +289,7 @@ function step() {
                 <div class="bar"><i style="width:${progress}%"></i></div>
                 <p class="sub">Soal ${i + 1} dari ${q.soal.length}</p>
                 <h3>${esc(s.q)}</h3>
-                ${s.o.map((o, k) => `<button class="opt" data-k="${k}">${'ABCD'[k]}. ${esc(o)}</button>`).join('')}
+                ${s.o.map((o, k) => `<button class="opt" data-k="${k}">${String.fromCharCode(65 + k)}. ${esc(o)}</button>`).join('')}
                 <div id="fb"></div>
             </div>
         </div>`;
@@ -322,5 +338,5 @@ route();
 
 Store.sync(cloud => {
     D = cloud;
-    route();
+    if (!run) route();
 });

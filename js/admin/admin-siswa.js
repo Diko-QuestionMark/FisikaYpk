@@ -1,6 +1,5 @@
 /* Modul Data Siswa & Pengelolaan Kelas */
-let curMasterKls = null,
-  editMaster = false;
+let curMasterKls = null;
 
 function getKelasList() {
   if (!D.daftar_kelas || !Array.isArray(D.daftar_kelas)) {
@@ -54,15 +53,17 @@ function pSiswa() {
     const items = klsList
       .map((k) => {
         const count = (D.kelas_siswa[k] || []).length;
+        const safeK = esc(k).replace(/'/g, "\\'");
+        const labelK = /^kelas\b/i.test(k) ? k : `Kelas ${k}`;
         return `
           <div class="crud-card">
             <div class="crud-card-left">
-              <h3 class="crud-card-title">Kelas ${esc(k)}</h3>
+              <h3 class="crud-card-title">${esc(labelK)}</h3>
               <div class="crud-card-sub">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>
             </div>
             <div class="crud-actions">
-              <button class="crud-btn-icon" onclick="curMasterKls='${esc(k)}';draw()" title="Edit Siswa">${ICON_EDIT}</button>
-              <button class="crud-btn-icon del" onclick="hapusKelas('${esc(k)}')" title="Hapus Kelas">${ICON_TRASH}</button>
+              <button class="crud-btn-icon" onclick="curMasterKls='${safeK}';draw()" title="Edit Siswa">${ICON_EDIT}</button>
+              <button class="crud-btn-icon del" onclick="hapusKelas('${safeK}')" title="Hapus Kelas">${ICON_TRASH}</button>
             </div>
           </div>`;
       })
