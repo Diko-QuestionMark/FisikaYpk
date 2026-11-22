@@ -47,7 +47,14 @@
   border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
   font-family: "Plus Jakarta Sans", system-ui, sans-serif !important;
   font-size: 16px !important;
+  background: var(--bg);
+  transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
+}
+
+.ql-container.ql-snow:focus-within {
   background: var(--surface);
+  border-color: var(--primary) !important;
+  box-shadow: var(--focus-ring);
 }
 
 .ql-editor {
@@ -206,9 +213,9 @@
 
 .live-preview-stage.mobile .live-preview-screen {
   width: 360px;
-  border-radius: 38px;
-  border: 11px solid var(--text);
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.22);
+  border-radius: 36px;
+  border: 8px solid #334155;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
   position: relative;
   flex-shrink: 0;
 }
@@ -221,9 +228,9 @@
 }
 
 .device-notch {
-  width: 100px;
-  height: 16px;
-  background: var(--text);
+  width: 92px;
+  height: 14px;
+  background: #334155;
   margin: 0 auto;
   border-radius: 0 0 12px 12px;
   flex-shrink: 0;

@@ -6,7 +6,8 @@ const ICON_SEARCH = `<svg class="crud-search-icon" width="18" height="18" viewBo
 
 let D = Store.get(),
   tab = "materi",
-  edit = null;
+  edit = null,
+  isDirty = false;
 
 const $ = (s) => document.querySelector(s);
 
@@ -20,6 +21,7 @@ const toast = (m) => {
 
 const save = () => {
   Store.save(D);
+  isDirty = false;
   toast("Tersimpan");
 };
 
@@ -30,6 +32,109 @@ const TABS = [
   ["siswa", "👥", "Data Siswa"],
   ["site", "⚙️", "Pengaturan"],
 ];
+
+function isEditingForm() {
+  return Boolean(
+    edit ||
+      (typeof curMasterKls !== "undefined" && curMasterKls) ||
+      tab === "site",
+  );
+}
+
+function confirmLeaveUnsaved() {
+  if (!isDirty) return true;
+  return confirm(
+    "Ada perubahan yang belum disimpan. Yakin ingin meninggalkan halaman ini? Perubahan akan hilang.",
+  );
+}
+
+function switchTab(nextTab) {
+  if (nextTab === tab && !edit && !(typeof curMasterKls !== "undefined" && curMasterKls)) {
+    if (window.innerWidth <= 768) $("#sidebar")?.classList.remove("open");
+    return;
+  }
+  if (!confirmLeaveUnsaved()) return;
+
+  isDirty = false;
+  tab = nextTab;
+  edit = null;
+  if (typeof curMasterKls !== "undefined") curMasterKls = null;
+  if (typeof editMaster !== "undefined") editMaster = false;
+  if (typeof curAbsenKls !== "undefined") curAbsenKls = null;
+  if (typeof curPertemuanNo !== "undefined") curPertemuanNo = null;
+  if (typeof A !== "undefined") A = null;
+  if (typeof previewQuizState !== "undefined") previewQuizState = null;
+  if (typeof showQuizSettings !== "undefined") showQuizSettings = false;
+
+  draw();
+  if (window.innerWidth <= 768) $("#sidebar")?.classList.remove("open");
+}
+
+function confirmBackToSite(e) {
+  if (!confirmLeaveUnsaved()) {
+    e.preventDefault();
+    return false;
+  }
+  isDirty = false;
+  return true;
+}
+
+function setupUnsavedGuard() {
+  if (window._unsavedGuardReady) return;
+  window._unsavedGuardReady = true;
+
+  const markDirtyIfEditing = (target) => {
+    if (!target || !target.closest("#app")) return;
+    if (!isEditingForm()) return;
+    if (target.closest(".crud-search-input, #qe_preview_modal")) return;
+    isDirty = true;
+  };
+
+  document.addEventListener("input", (e) => markDirtyIfEditing(e.target));
+  document.addEventListener("change", (e) => markDirtyIfEditing(e.target));
+
+  // Cegah keluar tanpa konfirmasi pada semua tombol Batal & breadcrumb di seluruh modul
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (!isDirty || !isEditingForm()) return;
+      const t = e.target;
+      if (!t || !t.closest("#app") || t.closest("#qe_preview_modal")) return;
+      const btn = t.closest("button");
+      if (!btn) return;
+      const isBreadcrumb = btn.classList.contains("breadcrumb-link");
+      const isBatalBtn = btn.textContent.trim().toLowerCase() === "batal";
+      if (!isBreadcrumb && !isBatalBtn) return;
+
+      if (!confirmLeaveUnsaved()) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return;
+      }
+      isDirty = false;
+    },
+    true,
+  );
+
+  document.addEventListener("click", (e) => {
+    if (!isEditingForm()) return;
+    const t = e.target;
+    if (
+      t.closest(
+        ".status-btn, .ql-toolbar, .qe-btn-add-opt, .qe-btn-del-opt, .qe-btn-del-soal, .qe-btn-add-sidebar, [onclick*='tambahSoalBaru'], [onclick*='setAllSiswaHadir']",
+      )
+    ) {
+      isDirty = true;
+    }
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    if (!isDirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+}
 
 function isAuth() {
   return sessionStorage.getItem("guru_auth") === "1";
@@ -72,13 +177,18 @@ function checkPass() {
 }
 
 function logoutGuru() {
-  if (confirm("Keluar dari Panel Guru?")) {
+  const msg = isDirty
+    ? "Ada perubahan yang belum disimpan. Tetap keluar dari Panel Guru?"
+    : "Keluar dari Panel Guru?";
+  if (confirm(msg)) {
+    isDirty = false;
     sessionStorage.removeItem("guru_auth");
     location.reload();
   }
 }
 
 function renderAdmin() {
+  setupUnsavedGuard();
   $("#root").innerHTML = `
     <div class="admin-layout">
       <aside class="sidebar" id="sidebar">
@@ -89,7 +199,7 @@ function renderAdmin() {
         <nav class="sidebar-nav" id="sidenav"></nav>
         <div style="padding:14px 20px 0;border-top:1px solid rgba(255,255,255,0.1);margin-top:12px;display:flex;flex-direction:column;gap:8px">
           <span class="neon-cloud-badge" style="display:none;font-size:11.5px;padding:4px 8px"></span>
-          <a class="sidebar-back" href="index.html" style="padding:0;border:none;margin:0">← Kembali ke website</a>
+          <a class="sidebar-back" href="index.html" onclick="return confirmBackToSite(event)" style="padding:0;border:none;margin:0">← Kembali ke website</a>
           <button onclick="logoutGuru()" style="background:none;border:none;color:rgba(255,255,255,0.5);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;padding:0" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">🚪 Keluar</button>
         </div>
       </aside>
@@ -104,9 +214,11 @@ function renderAdmin() {
 
 function draw() {
   if (!isAuth()) return;
+  if (!isEditingForm()) isDirty = false;
+
   $("#sidenav").innerHTML = TABS.map(
     (t) =>
-      `<button class="sidebar-item${tab === t[0] ? " active" : ""}" onclick="tab='${t[0]}';edit=null;curMasterKls=null;editMaster=false;curAbsenKls=null;A=null;draw();if(window.innerWidth<=768)$('#sidebar').classList.remove('open')"><span class="sidebar-icon">${t[1]}</span>${t[2]}</button>`,
+      `<button class="sidebar-item${tab === t[0] ? " active" : ""}" onclick="switchTab('${t[0]}')"><span class="sidebar-icon">${t[1]}</span>${t[2]}</button>`,
   ).join("");
   const curTab = TABS.find((t) => t[0] === tab);
   $("#topbar").innerHTML = `<div style="display:flex;align-items:center;gap:12px">
@@ -124,7 +236,7 @@ function draw() {
   if (typeof afterDraw === "function") afterDraw();
 }
 
-/* Helper Komponen UI Bersama - Modern Clean Cards (Gambar 2 Reference) */
+/* Helper Komponen UI Bersama - Modern Clean Cards */
 function renderBreadcrumb(items = []) {
   if (!items || !items.length) return "";
   const listHtml = items
@@ -264,10 +376,10 @@ function initAdmin() {
     renderAdmin();
   }
 
-  // Sinkronkan data dari Neon Cloud
+  // Sinkronkan data dari Neon Cloud (tunda render ulang jika sedang ada edit yang belum disimpan)
   Store.sync((cloud) => {
     D = cloud;
-    if (isAuth()) draw();
+    if (isAuth() && !isDirty) draw();
     NeonDB.updateBadge();
   });
 }

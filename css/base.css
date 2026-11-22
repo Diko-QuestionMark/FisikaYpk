@@ -3,8 +3,8 @@
    ===================================================== */
 
 :root {
-  --bg: #f8fafc;
-  --bg-subtle: #f1f5f9;
+  --bg: #f1f5f9;
+  --bg-subtle: #e8eef5;
   --surface: #ffffff;
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
@@ -23,6 +23,7 @@
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.02);
   --shadow-primary: 0 2px 8px rgba(8, 145, 178, 0.25);
   --shadow-primary-hover: 0 4px 12px rgba(8, 145, 178, 0.35);
+  --focus-ring: 0 0 0 3px rgba(8, 145, 178, 0.12);
   --ease: 0.15s ease;
 }
 
@@ -61,7 +62,8 @@ a {
 
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+.ql-editor:focus-visible {
   outline: none;
 }
 

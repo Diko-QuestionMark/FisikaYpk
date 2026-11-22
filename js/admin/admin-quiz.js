@@ -3,11 +3,13 @@ let Q;
 let filterTopikQuiz = "Semua";
 let showQuizSettings = false;
 let activeSoalIdx = 0;
+let previewQuizState = null;
 
 function pQuiz() {
   if (!edit) {
     Q = null;
     showQuizSettings = false;
+    previewQuizState = null;
     activeSoalIdx = 0;
     const allList = [...(D.quiz || [])].reverse();
     const list = allList.filter(
@@ -164,24 +166,22 @@ function pQuiz() {
       <!-- Soal Cards -->
       ${soalCards}
 
-      <!-- Actions di bawah kolom pertanyaan -->
-      <div class="qe-main-actions">
-        <div>
-          ${Q.tipe === "native" ? `<button type="button" class="qe-btn-outline" onclick="tambahSoalBaru()">+ Tambah soal</button>` : ""}
-        </div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <button type="button" class="qe-btn-outline" onclick="pratinjauKuis()">Pratinjau</button>
-          <button type="button" class="qe-btn-save" onclick="sQ()">Simpan kuis</button>
-        </div>
-      </div>
+      <!-- Action tambah soal di bawah kolom pertanyaan -->
+      ${
+        Q.tipe === "native"
+          ? `<div class="qe-main-actions">
+              <button type="button" class="qe-btn-outline" onclick="tambahSoalBaru()">+ Tambah soal</button>
+            </div>`
+          : ""
+      }
     </div>
 
-    <!-- Sidebar Navigasi Soal -->
-    ${
-      Q.tipe === "native"
-        ? `
+    <!-- Sidebar Navigasi Soal & Aksi Kuis -->
     <div class="qe-sidebar">
       <div class="qe-nav-card">
+        ${
+          Q.tipe === "native"
+            ? `
         <h4 class="qe-nav-title">Navigasi soal</h4>
         <div class="qe-nav-count">${lengkapCount} dari ${totalSoal} soal lengkap</div>
         <div class="qe-nav-grid">
@@ -192,14 +192,20 @@ function pQuiz() {
           <span><span class="qe-dot"></span> Belum</span>
         </div>
         <button type="button" class="qe-btn-add-sidebar" onclick="tambahSoalBaru()">+ Tambah soal</button>
+        `
+            : `<h4 class="qe-nav-title" style="margin-bottom:4px">Aksi kuis</h4>`
+        }
+        <div class="absen-sidebar-actions">
+          <button type="button" class="qe-btn-save" style="width:100%;text-align:center" onclick="sQ()">Simpan kuis</button>
+          <button type="button" class="qe-btn-outline" style="width:100%;text-align:center" onclick="pratinjauKuis()">Pratinjau</button>
+          <button type="button" class="btn ghost" style="width:100%;text-align:center" onclick="batalEditKuis()">Batal</button>
+        </div>
       </div>
     </div>
-    `
-        : ""
-    }
   </div>
 
   ${renderQuizSettingsModal()}
+  ${renderQuizPreviewModal()}
   `;
 }
 
@@ -346,7 +352,6 @@ function tambahSoalBaru() {
     e: "",
   });
   draw();
-  /* Scroll to new soal after render */
   setTimeout(() => {
     const el = document.getElementById("soal-" + (Q.soal.length - 1));
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -373,7 +378,6 @@ function hapusOpsi(n, k) {
   sync();
   if (Q.soal[n] && Q.soal[n].o.length > 2) {
     Q.soal[n].o.splice(k, 1);
-    /* Fix answer index */
     if (Q.soal[n].a === k) {
       Q.soal[n].a = -1;
     } else if (Q.soal[n].a > k) {
@@ -395,9 +399,234 @@ function scrollToSoal(n) {
   }, 30);
 }
 
+/* ===================================================
+   PRATINJAU KUIS INTERAKTIF (TES SOAL & KUNCI)
+=================================================== */
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function pratinjauKuis() {
   sync();
-  toast("Fitur pratinjau akan segera hadir!");
+  if (!Q) return;
+  if (Q.tipe === "native" && (!Q.soal || !Q.soal.length)) {
+    return toast("Tambahkan minimal 1 soal untuk pratinjau");
+  }
+
+  const warnings = [];
+  if (Q.tipe === "native") {
+    Q.soal.forEach((s, i) => {
+      const issues = [];
+      if (!s.q.trim()) issues.push("pertanyaan kosong");
+      if (s.o.some((o) => !o.trim())) issues.push("ada opsi kosong");
+      if (typeof s.a !== "number" || s.a < 0 || s.a >= s.o.length) issues.push("belum ada kunci");
+      if (issues.length) warnings.push(`Soal ${i + 1} (${issues.join(", ")})`);
+    });
+  }
+
+  previewQuizState = {
+    step: "intro",
+    warnings,
+    items: [],
+    idx: 0,
+    picked: null,
+    benar: 0,
+  };
+  draw();
+}
+
+function mulaiPratinjauKuis() {
+  if (!Q || !previewQuizState) return;
+  let items = (Q.soal || []).map((s, i) => {
+    const hasKey = typeof s.a === "number" && s.a >= 0 && s.a < s.o.length;
+    let opts = s.o.map((text, k) => ({ text, isCorrect: hasKey && k === s.a }));
+    if (Q.acakOpsi) opts = shuffleArray(opts);
+    return {
+      origNo: i + 1,
+      q: s.q,
+      e: s.e || "",
+      hasKey,
+      opts,
+    };
+  });
+  if (Q.acakSoal) items = shuffleArray(items);
+
+  previewQuizState = {
+    ...previewQuizState,
+    step: "play",
+    items,
+    idx: 0,
+    picked: null,
+    benar: 0,
+  };
+  updateQuizPreviewBody();
+}
+
+function pilihOpsiPratinjau(optIdx) {
+  if (!previewQuizState || previewQuizState.picked !== null) return;
+  const cur = previewQuizState.items[previewQuizState.idx];
+  if (!cur) return;
+  previewQuizState.picked = optIdx;
+  if (cur.opts[optIdx]?.isCorrect) previewQuizState.benar++;
+  updateQuizPreviewBody();
+}
+
+function lanjutPratinjauKuis() {
+  if (!previewQuizState) return;
+  if (previewQuizState.idx + 1 < previewQuizState.items.length) {
+    previewQuizState.idx++;
+    previewQuizState.picked = null;
+  } else {
+    previewQuizState.step = "done";
+  }
+  updateQuizPreviewBody();
+}
+
+function tutupPratinjauKuis() {
+  previewQuizState = null;
+  const el = document.getElementById("qe_preview_modal");
+  if (el) el.remove();
+  else draw();
+}
+
+function updateQuizPreviewBody() {
+  const bodyEl = document.getElementById("qe_preview_body");
+  if (bodyEl) {
+    bodyEl.innerHTML = buildQuizPreviewBody();
+  } else {
+    draw();
+  }
+}
+
+function buildQuizPreviewBody() {
+  if (!previewQuizState || !Q) return "";
+  const st = previewQuizState;
+  let bodyHtml = "";
+
+  if (Q.tipe !== "native") {
+    const validLink = /^https?:\/\//.test(Q.link || "");
+    bodyHtml = `
+      <div style="margin-bottom:14px">
+        <h3 style="font-size:20px;margin-bottom:6px">${esc(Q.judul || "Judul Kuis Belum Diisi")}</h3>
+        <p class="sub" style="margin-bottom:14px">${esc(Q.deskripsi || "Tidak ada deskripsi.")}</p>
+        <div class="quiz-intro-meta">
+          <span class="quiz-intro-badge">🔗 ${esc(TIPE[Q.tipe] || "Link Eksternal")}</span>
+          <span class="quiz-intro-badge">🏷 ${esc(Q.topik || "Umum")}</span>
+        </div>
+        ${
+          validLink
+            ? `<a href="${esc(Q.link)}" target="_blank" rel="noopener" class="btn" style="width:100%;text-align:center">Buka Link Kuis ↗</a>`
+            : `<div class="exp" style="color:var(--danger)">Link kuis belum diisi atau tidak diawali <b>https://</b>.</div>`
+        }
+      </div>`;
+  } else if (st.step === "intro") {
+    const durasiText = Q.durasi ? `${Q.durasi} menit` : "Tanpa batas waktu";
+    bodyHtml = `
+      <h3 style="font-size:20px;margin-bottom:6px">${esc(Q.judul || "Judul Kuis Belum Diisi")}</h3>
+      <p class="sub" style="margin-bottom:14px">${esc(Q.deskripsi || "Mode pratinjau guru untuk menguji soal dan kunci jawaban.")}</p>
+      <div class="quiz-intro-meta">
+        <span class="quiz-intro-badge">📝 ${Q.soal.length} Soal</span>
+        <span class="quiz-intro-badge">⏱ ${durasiText}</span>
+        ${Q.acakSoal ? `<span class="quiz-intro-badge">🔀 Acak Soal</span>` : ""}
+        ${Q.acakOpsi ? `<span class="quiz-intro-badge">🔀 Acak Opsi</span>` : ""}
+      </div>
+      ${
+        st.warnings.length
+          ? `<div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:10px;padding:12px 14px;font-size:13.5px;margin-bottom:18px">
+              <b>Perhatian — ada soal belum lengkap:</b>
+              <ul style="margin:6px 0 0;padding-left:18px">
+                ${st.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}
+              </ul>
+            </div>`
+          : `<div style="background:#dcfce7;border:1px solid #86efac;color:#15803d;border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:18px">
+              ✓ Semua soal, opsi, dan kunci jawaban sudah lengkap.
+            </div>`
+      }
+      <div class="row" style="justify-content:flex-end;gap:10px">
+        <button type="button" class="btn ghost" onclick="tutupPratinjauKuis()">Tutup</button>
+        <button type="button" class="btn" onclick="mulaiPratinjauKuis()">Mulai Tes Pratinjau →</button>
+      </div>`;
+  } else if (st.step === "play") {
+    const cur = st.items[st.idx];
+    const pct = Math.round(((st.idx + 1) / st.items.length) * 100);
+    const isAnswered = st.picked !== null;
+    const isLast = st.idx + 1 === st.items.length;
+
+    const optsHtml = cur.opts
+      .map((opt, k) => {
+        let cls = "opt";
+        if (isAnswered) {
+          if (opt.isCorrect) cls += " ok";
+          else if (st.picked === k) cls += " bad";
+        }
+        return `<button type="button" class="${cls}" ${isAnswered ? "disabled" : ""} onclick="pilihOpsiPratinjau(${k})">
+          <b>${String.fromCharCode(65 + k)}.</b> ${esc(opt.text || "(Opsi kosong)")}
+        </button>`;
+      })
+      .join("");
+
+    bodyHtml = `
+      <div class="row" style="justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--text-muted);font-weight:600">
+        <span>Soal ${st.idx + 1} dari ${st.items.length}${Q.acakSoal ? ` (Asli: #${cur.origNo})` : ""}</span>
+        <span>Benar: ${st.benar}</span>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div style="font-size:16px;font-weight:700;line-height:1.5;margin-bottom:14px;white-space:pre-line">${esc(cur.q || "(Pertanyaan masih kosong)")}</div>
+      <div>${optsHtml}</div>
+      ${
+        isAnswered && !cur.hasKey
+          ? `<div class="exp" style="background:#fef3c7;color:#92400e">⚠️ Soal #${cur.origNo} belum memiliki kunci jawaban.</div>`
+          : ""
+      }
+      ${
+        isAnswered && cur.e
+          ? `<div class="exp"><b>Pembahasan:</b> ${esc(cur.e)}</div>`
+          : ""
+      }
+      <div class="row" style="justify-content:space-between;margin-top:20px">
+        <button type="button" class="btn sm ghost" onclick="tutupPratinjauKuis();scrollToSoal(${cur.origNo - 1})">✎ Edit Soal #${cur.origNo}</button>
+        ${
+          isAnswered
+            ? `<button type="button" class="btn" onclick="lanjutPratinjauKuis()">${isLast ? "Lihat Hasil →" : "Soal Berikutnya →"}</button>`
+            : `<button type="button" class="btn sm ghost" onclick="lanjutPratinjauKuis()">Lewati →</button>`
+        }
+      </div>`;
+  } else if (st.step === "done") {
+    const total = st.items.length || 1;
+    const skor = Math.round((st.benar / total) * 100);
+    bodyHtml = `
+      <div style="text-align:center;padding:8px 0">
+        <div style="font-size:14px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Hasil Pratinjau</div>
+        <div class="score">${skor}</div>
+        <p class="sub" style="margin:6px 0 22px">Benar <b>${st.benar}</b> dari <b>${st.items.length}</b> soal (tidak disimpan ke data)</p>
+        <div class="row" style="justify-content:center;gap:10px">
+          <button type="button" class="btn ghost" onclick="mulaiPratinjauKuis()">Ulangi Tes</button>
+          <button type="button" class="btn" onclick="tutupPratinjauKuis()">Selesai</button>
+        </div>
+      </div>`;
+  }
+
+  return bodyHtml;
+}
+
+function renderQuizPreviewModal() {
+  if (!previewQuizState || !Q) return "";
+  return `
+    <div id="qe_preview_modal" class="qe-modal-backdrop" onclick="if(event.target === this) tutupPratinjauKuis()">
+      <div class="qe-modal-box" style="max-width:640px">
+        <div class="qe-modal-header">
+          <h3 class="qe-modal-title">Pratinjau Kuis</h3>
+          <button type="button" class="qe-modal-close" onclick="tutupPratinjauKuis()" title="Tutup">✕</button>
+        </div>
+        <div id="qe_preview_body">${buildQuizPreviewBody()}</div>
+      </div>
+    </div>
+  `;
 }
 
 function setKunciJawaban(soalIdx, kunciIdx) {
@@ -434,6 +663,16 @@ function sync() {
       s[f] = e.value;
     }
   });
+}
+
+function batalEditKuis() {
+  if (typeof confirmLeaveUnsaved === "function" && !confirmLeaveUnsaved()) return;
+  if (typeof isDirty !== "undefined") isDirty = false;
+  Q = null;
+  edit = null;
+  showQuizSettings = false;
+  previewQuizState = null;
+  draw();
 }
 
 function sQ() {
@@ -475,6 +714,7 @@ function sQ() {
   Q = null;
   edit = null;
   showQuizSettings = false;
+  previewQuizState = null;
   save();
   draw();
   toast("Kuis berhasil disimpan!");

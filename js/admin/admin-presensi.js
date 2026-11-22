@@ -209,6 +209,12 @@ function pAbsen() {
     if (A.kelas && !curAbsenKls) curAbsenKls = A.kelas;
   }
 
+  const masterSiswa = A.kelas ? (D.kelas_siswa[A.kelas] || []) : [];
+  const existingNames = new Set(A.siswa.map((s) => String(s.nama || "").trim().toLowerCase()));
+  const siswaBaruCount = masterSiswa.filter(
+    (n) => !existingNames.has(String(n || "").trim().toLowerCase()),
+  ).length;
+
   const totalSiswa = A.siswa.length;
   const countH = A.siswa.filter((s) => s.status === "Hadir").length;
   const countS = A.siswa.filter((s) => s.status === "Sakit").length;
@@ -301,11 +307,18 @@ function pAbsen() {
             <div style="font-weight:700;font-size:15px;color:var(--text)">
               Kehadiran Siswa ${A.kelas ? `${esc(klsLabel)} (${totalSiswa} siswa)` : ""}
             </div>
-            ${
-              totalSiswa
-                ? `<button type="button" class="btn sm ghost" onclick="setAllSiswaHadir()">✓ Hadir Semua</button>`
-                : ""
-            }
+            <div class="row" style="gap:8px">
+              ${
+                siswaBaruCount > 0
+                  ? `<button type="button" class="btn sm ghost" onclick="sinkronkanSiswaAbsen()" title="Tambahkan siswa baru dari Data Siswa">↻ Sinkronkan (+${siswaBaruCount} baru)</button>`
+                  : ""
+              }
+              ${
+                totalSiswa
+                  ? `<button type="button" class="btn sm ghost" onclick="setAllSiswaHadir()">✓ Hadir Semua</button>`
+                  : ""
+              }
+            </div>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:8px" id="siswa_list">
@@ -356,6 +369,26 @@ function setSiswaStatus(idx, status) {
     A.siswa[idx].status = A.siswa[idx].status === status ? "" : status;
     draw();
   }
+}
+
+function sinkronkanSiswaAbsen() {
+  syncA();
+  if (!A || !A.kelas) return;
+  const master = (D.kelas_siswa || {})[A.kelas] || [];
+  const existingNames = new Set(A.siswa.map((s) => String(s.nama || "").trim().toLowerCase()));
+  let added = 0;
+  master.forEach((nama) => {
+    const key = String(nama || "").trim().toLowerCase();
+    if (key && !existingNames.has(key)) {
+      A.siswa.push({ nama, status: "", catatan: "" });
+      existingNames.add(key);
+      added++;
+    }
+  });
+  if (!added) return toast("Daftar siswa sudah sinkron");
+  if (typeof isDirty !== "undefined") isDirty = true;
+  draw();
+  toast(`${added} siswa baru ditambahkan`);
 }
 
 function setAllSiswaHadir() {
