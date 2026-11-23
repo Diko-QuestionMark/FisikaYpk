@@ -810,15 +810,41 @@
 
 
 @media (max-width: 640px) {
+  .btn { padding: 8px 16px; font-size: 14px; }
+  .btn.sm { padding: 5px 10px; font-size: 12.5px; }
+  .breadcrumb { font-size: 12px; margin-bottom: 10px; }
   .crud-header,
   .qe-title-row,
   .qe-main-actions { flex-direction: column; align-items: stretch; }
-  .crud-search-wrap { max-width: 100%; }
-  .crud-btn-add { justify-content: center; }
-  .crud-card { flex-direction: column; align-items: flex-start; padding: 16px 18px; gap: 14px; }
-  .crud-actions { width: 100%; justify-content: flex-end; }
-  .qe-nav-grid { grid-template-columns: repeat(5, 1fr); }
+  .crud-header { margin-bottom: 14px; gap: 10px; }
+  .crud-search-wrap { max-width: 100%; min-width: 0; }
+  .crud-search-input { padding: 8px 12px 8px 36px; font-size: 13.5px; }
+  .crud-search-icon { left: 11px; }
+  .crud-btn-add { justify-content: center; padding: 9px 16px; font-size: 13.5px; }
+  .crud-card-list { gap: 10px; }
+  .crud-card { flex-direction: column; align-items: flex-start; padding: 13px 14px; gap: 10px; border-radius: 12px; }
+  .crud-card-title { font-size: 14.5px; }
+  .crud-card-sub { font-size: 12.5px; }
+  .crud-actions { width: 100%; justify-content: flex-end; gap: 8px; }
+  .crud-btn-icon { width: 34px; height: 34px; }
+  .qe-layout { gap: 14px; margin-bottom: 16px; }
+  .qe-main { gap: 12px; }
+  .qe-card, .qe-nav-card { padding: 14px; border-radius: 12px; }
+  .qe-soal-title { font-size: 15.5px; }
+  .qe-opt-row { gap: 8px; }
+  .qe-opt-row input[type="text"] { padding: 8px 11px; font-size: 14px; }
+  .qe-nav-grid { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .qnav-btn { font-size: 13px; border-radius: 8px; }
+  .qe-btn-outline, .qe-btn-save { padding: 9px 16px; font-size: 14px; }
   .qe-main-actions > * { width: 100%; text-align: center; }
+  .absen-summary-card { padding: 14px; border-radius: 12px; }
+  .absen-percent-box { padding: 10px; margin-bottom: 10px; }
+  .absen-percent-num { font-size: 26px; }
+  .absen-stat-grid { gap: 8px; margin-bottom: 10px; }
+  .absen-stat-item { padding: 7px 10px; }
+  .absen-stat-count { font-size: 16px; }
+  .status-btn { padding: 4px 8px; font-size: 12px; }
+  .badge { font-size: 11px; padding: 2px 7px; }
 }
 
 @media (max-width: 520px) {

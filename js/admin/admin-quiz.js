@@ -16,19 +16,29 @@ function pQuiz() {
       (x) => filterTopikQuiz === "Semua" || (x.topik || "Semua") === filterTopikQuiz,
     );
     const items = list
-      .map(
-        (x) => `
+      .map((x) => {
+        const topikLabel = x.topik || "Umum";
+        const vis = typeof getTopikVisual === "function"
+          ? getTopikVisual(topikLabel)
+          : { bg: "var(--primary-soft)", color: "var(--primary)", svg: "✏️" };
+        return `
       <div class="crud-card">
-        <div class="crud-card-left">
-          <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
-          <div class="crud-card-sub">${esc(x.topik || "Umum")} · ${TIPE[x.tipe] || "Link eksternal"}${x.tipe === "native" ? ` · ${x.soal.length} soal` : ""}</div>
+        <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+          <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;flex-shrink:0" title="${esc(topikLabel)}">${vis.svg}</div>
+          <div class="crud-card-left">
+            <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
+            <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
+              <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${vis.bg};color:${vis.color}">${esc(topikLabel)}</span>
+              <span>${TIPE[x.tipe] || "Link eksternal"}${x.tipe === "native" ? ` · ${x.soal.length} soal` : ""}</span>
+            </div>
+          </div>
         </div>
         <div class="crud-actions">
           <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
           <button class="crud-btn-icon del" onclick="del('quiz','${x.id}')" title="Hapus">${ICON_TRASH}</button>
         </div>
-      </div>`,
-      )
+      </div>`;
+      })
       .join("");
 
     return `
@@ -718,4 +728,407 @@ function sQ() {
   save();
   draw();
   toast("Kuis berhasil disimpan!");
+}
+
+/* ===================================================
+   MODUL REKAP NILAI KUIS (TAB NILAI DI PANEL GURU)
+=================================================== */
+let nilaiRows = [];
+let nilaiLoading = false;
+let nilaiLoaded = false;
+let curNilaiQuizId = null;
+let filterNilaiKelas = "Semua";
+let nilaiViewMode = "best"; // "best" | "all"
+let nilaiSort = "recent";   // "recent" | "score" | "name"
+let nilaiSearch = "";
+let nilaiFocusStudent = null;
+
+function fmtWaktuNilai(ts) {
+  if (!ts) return "-";
+  try {
+    const d = new Date(Number(ts));
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (e) {
+    return "-";
+  }
+}
+
+function openNilaiQuiz(qid) {
+  curNilaiQuizId = qid;
+  filterNilaiKelas = "Semua";
+  nilaiSearch = "";
+  nilaiFocusStudent = null;
+  nilaiViewMode = "best";
+  draw();
+}
+
+function lihatPercobaanSiswa(nama) {
+  nilaiFocusStudent = nama || null;
+  nilaiViewMode = "all";
+  nilaiSearch = nama || "";
+  draw();
+}
+
+function tutupPercobaanSiswa() {
+  nilaiFocusStudent = null;
+  nilaiViewMode = "best";
+  nilaiSearch = "";
+  draw();
+}
+
+function onNilaiTableSearch(val) {
+  nilaiSearch = val || "";
+  const q = nilaiSearch.toLowerCase().trim();
+  const tbody = document.getElementById("nilai_tbody");
+  if (!tbody) return;
+  let visible = 0;
+  tbody.querySelectorAll("tr[data-search]").forEach((tr) => {
+    const match = !q || tr.dataset.search.includes(q);
+    tr.style.display = match ? "" : "none";
+    if (match) visible++;
+  });
+  const emptyRow = document.getElementById("nilai_search_empty");
+  if (emptyRow) emptyRow.style.display = visible === 0 ? "" : "none";
+}
+
+async function loadNilai(force = false) {
+  if (nilaiLoading) return;
+  if (nilaiLoaded && !force) return;
+  nilaiLoading = true;
+  if (tab === "nilai") draw();
+  try {
+    nilaiRows = typeof NilaiDB !== "undefined" ? await NilaiDB.list() : [];
+    nilaiLoaded = true;
+  } finally {
+    nilaiLoading = false;
+    if (tab === "nilai") draw();
+  }
+}
+
+async function hapusNilai(id) {
+  if (!confirm("Hapus catatan nilai ini?")) return;
+  if (typeof NilaiDB !== "undefined") await NilaiDB.remove(id);
+  nilaiRows = nilaiRows.filter((x) => x.id !== id);
+  toast("Catatan nilai dihapus");
+  draw();
+}
+
+function getProcessedNilai() {
+  let rows = (nilaiRows || []).filter((r) => {
+    if (curNilaiQuizId && r.quiz_id !== curNilaiQuizId) return false;
+    if (filterNilaiKelas !== "Semua" && r.kelas !== filterNilaiKelas) return false;
+    return true;
+  });
+
+  if (nilaiViewMode === "best") {
+    const byStudent = new Map();
+    rows.forEach((r) => {
+      const key = `${String(r.kelas || "").trim().toLowerCase()}::${String(r.nama || "").trim().toLowerCase()}`;
+      const cur = byStudent.get(key);
+      if (!cur) {
+        byStudent.set(key, { ...r, _attempts: 1 });
+      } else {
+        const attempts = cur._attempts + 1;
+        const isBetter =
+          r.skor > cur.skor ||
+          (r.skor === cur.skor && (r.created_at || 0) > (cur.created_at || 0));
+        byStudent.set(key, isBetter ? { ...r, _attempts: attempts } : { ...cur, _attempts: attempts });
+      }
+    });
+    rows = [...byStudent.values()];
+  } else {
+    rows = rows.map((r) => ({ ...r, _attempts: 1 }));
+  }
+
+  if (nilaiSort === "score") {
+    rows.sort((a, b) => b.skor - a.skor || String(a.nama).localeCompare(String(b.nama)));
+  } else if (nilaiSort === "name") {
+    rows.sort((a, b) => String(a.nama).localeCompare(String(b.nama)) || b.skor - a.skor);
+  } else {
+    rows.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  }
+
+  return rows;
+}
+
+function pNilai() {
+  if (!nilaiLoaded && !nilaiLoading) {
+    setTimeout(() => loadNilai(false), 0);
+  }
+
+  const quizMeta = new Map();
+  [...(D.quiz || [])]
+    .reverse()
+    .filter((q) => q.tipe === "native")
+    .forEach((q) => {
+      quizMeta.set(q.id, { id: q.id, judul: q.judul || "Tanpa Judul", topik: q.topik || "Umum" });
+    });
+  (nilaiRows || []).forEach((r) => {
+    if (r.quiz_id && !quizMeta.has(r.quiz_id)) {
+      quizMeta.set(r.quiz_id, { id: r.quiz_id, judul: r.quiz_judul || r.quiz_id, topik: "Umum" });
+    }
+  });
+
+  /* LEVEL 1: Pilih Kuis */
+  if (!curNilaiQuizId) {
+    const quizCards = [...quizMeta.values()]
+      .map((q) => {
+        const rows = (nilaiRows || []).filter((r) => r.quiz_id === q.id);
+        const uniqueStudents = new Set(
+          rows.map((r) => `${String(r.kelas || "").toLowerCase()}::${String(r.nama || "").toLowerCase()}`),
+        ).size;
+        const vis = typeof getTopikVisual === "function"
+          ? getTopikVisual(q.topik)
+          : { bg: "var(--primary-soft)", color: "var(--primary)", svg: "🏆" };
+        const safeId = esc(q.id).replace(/'/g, "\\'");
+
+        return `
+          <div class="crud-card" style="cursor:pointer" onclick="openNilaiQuiz('${safeId}')">
+            <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+              <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${vis.svg}</div>
+              <div class="crud-card-left">
+                <h3 class="crud-card-title">${esc(q.judul)}</h3>
+                <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
+                  <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${vis.bg};color:${vis.color}">${esc(q.topik)}</span>
+                  <span>${rows.length ? `${uniqueStudents} siswa · ${rows.length} percobaan` : "Belum ada nilai masuk"}</span>
+                </div>
+              </div>
+            </div>
+            <div class="crud-actions">
+              <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openNilaiQuiz('${safeId}')">Lihat Nilai →</button>
+            </div>
+          </div>`;
+      })
+      .join("");
+
+    return `
+      ${renderBreadcrumb([{ label: "Nilai" }])}
+      <div class="crud-header">
+        <div class="crud-search-wrap">
+          ${ICON_SEARCH}
+          <input type="text" class="crud-search-input" placeholder="Cari judul kuis..." oninput="onCrudSearch(this.value)" />
+        </div>
+        <button type="button" class="btn ghost" style="padding:10px 14px;font-size:13.5px;border-radius:12px" onclick="loadNilai(true)">${nilaiLoading ? "Memuat..." : "↻ Muat Ulang"}</button>
+      </div>
+      <div class="crud-card-list">
+        ${
+          nilaiLoading && !nilaiLoaded
+            ? `<div class="crud-empty">Memuat data nilai dari database...</div>`
+            : quizCards || `<div class="crud-empty">Belum ada kuis. Buat kuis terlebih dahulu di menu <b>Quiz</b>.</div>`
+        }
+      </div>
+    `;
+  }
+
+  /* LEVEL 2: Tabel Nilai per Kuis */
+  const curQuiz = quizMeta.get(curNilaiQuizId) || { id: curNilaiQuizId, judul: "Kuis" };
+  const kelasSet = new Set(typeof getKelasList === "function" ? getKelasList() : []);
+  (nilaiRows || [])
+    .filter((r) => r.quiz_id === curNilaiQuizId)
+    .forEach((r) => { if (r.kelas) kelasSet.add(r.kelas); });
+
+  const processed = getProcessedNilai();
+  const qLower = nilaiSearch.toLowerCase().trim();
+  const totalCount = processed.length;
+  const rataSkor = totalCount ? Math.round(processed.reduce((a, b) => a + b.skor, 0) / totalCount) : 0;
+  const maxSkor = totalCount ? Math.max(...processed.map((x) => x.skor)) : 0;
+  const minSkor = totalCount ? Math.min(...processed.map((x) => x.skor)) : 0;
+
+  const selStyle = "width:auto;padding:9px 12px;border-radius:10px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer";
+  const thStyle = "padding:11px 14px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:var(--text-muted);background:var(--bg);border-bottom:1.5px solid var(--border);white-space:nowrap";
+  const tdStyle = "padding:11px 14px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle";
+
+  const rowsHtml = processed
+    .map((r, idx) => {
+      const klsLabel = /^kelas\b/i.test(r.kelas) ? r.kelas : `Kelas ${r.kelas}`;
+      const skorBg = r.skor >= 75 ? "#dcfce7" : r.skor >= 50 ? "#fef3c7" : "#fee2e2";
+      const skorColor = r.skor >= 75 ? "#15803d" : r.skor >= 50 ? "#92400e" : "#b91c1c";
+      const searchStr = esc(`${r.nama} ${klsLabel}`).toLowerCase();
+      const hiddenStyle = qLower && !searchStr.includes(qLower) ? "display:none" : "";
+      const safeNama = esc(r.nama).replace(/'/g, "\\'");
+
+      const aksiCell =
+        nilaiViewMode === "best" && r._attempts > 1
+          ? `<button type="button" class="btn sm ghost" style="padding:4px 10px;font-size:12px" onclick="lihatPercobaanSiswa('${safeNama}')" title="Lihat semua percobaan siswa ini">${r._attempts}x coba</button>`
+          : `<button type="button" class="crud-btn-icon del" style="width:32px;height:32px" onclick="hapusNilai('${r.id}')" title="Hapus catatan nilai">${ICON_TRASH}</button>`;
+
+      return `
+        <tr data-search="${searchStr}" style="${hiddenStyle}">
+          <td style="${tdStyle};color:var(--text-muted);font-weight:600;width:44px">${idx + 1}</td>
+          <td style="${tdStyle};font-weight:700;color:var(--text)">${esc(r.nama)}</td>
+          <td style="${tdStyle};color:var(--text-muted);white-space:nowrap">${esc(klsLabel)}</td>
+          <td style="${tdStyle};text-align:center;color:var(--text-muted);white-space:nowrap">${r.benar}/${r.total}</td>
+          <td style="${tdStyle};text-align:center">
+            <span style="display:inline-block;min-width:40px;padding:3px 10px;border-radius:999px;font-weight:800;font-size:13px;background:${skorBg};color:${skorColor}">${r.skor}</span>
+          </td>
+          <td style="${tdStyle};color:var(--text-muted);font-size:13px;white-space:nowrap">${esc(fmtWaktuNilai(r.created_at))}</td>
+          <td style="${tdStyle};text-align:right;white-space:nowrap">${aksiCell}</td>
+        </tr>`;
+    })
+    .join("");
+
+  return `
+    ${renderBreadcrumb(
+      nilaiFocusStudent
+        ? [
+            { label: "Nilai", onClick: "curNilaiQuizId=null;filterNilaiKelas='Semua';nilaiSearch='';nilaiFocusStudent=null;nilaiViewMode='best';draw()" },
+            { label: curQuiz.judul, onClick: "tutupPercobaanSiswa()" },
+            { label: `Percobaan: ${nilaiFocusStudent}` },
+          ]
+        : [
+            { label: "Nilai", onClick: "curNilaiQuizId=null;filterNilaiKelas='Semua';nilaiSearch='';nilaiFocusStudent=null;draw()" },
+            { label: curQuiz.judul },
+          ],
+    )}
+    ${
+      nilaiFocusStudent
+        ? `<div class="panel" style="padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:13.5px;color:var(--text-muted)">Menampilkan semua percobaan milik <b style="color:var(--text)">${esc(nilaiFocusStudent)}</b></span>
+            <button type="button" class="btn sm ghost" onclick="tutupPercobaanSiswa()">← Kembali ke Ringkasan</button>
+          </div>`
+        : ""
+    }
+    <div class="crud-header" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap">
+        <div class="crud-search-wrap" style="min-width:200px;max-width:300px">
+          ${ICON_SEARCH}
+          <input type="text" class="crud-search-input" value="${esc(nilaiSearch)}" placeholder="Cari nama siswa..." oninput="onNilaiTableSearch(this.value)" />
+        </div>
+        <select onchange="filterNilaiKelas=this.value;draw()" style="${selStyle}">
+          <option value="Semua" ${filterNilaiKelas === "Semua" ? "selected" : ""}>Semua Kelas</option>
+          ${[...kelasSet].map((k) => `<option value="${esc(k)}" ${filterNilaiKelas === k ? "selected" : ""}>${esc(/^kelas\b/i.test(k) ? k : "Kelas " + k)}</option>`).join("")}
+        </select>
+        <select onchange="nilaiViewMode=this.value;draw()" style="${selStyle}">
+          <option value="best" ${nilaiViewMode === "best" ? "selected" : ""}>Nilai Tertinggi / Siswa</option>
+          <option value="all" ${nilaiViewMode === "all" ? "selected" : ""}>Semua Percobaan</option>
+        </select>
+        <select onchange="nilaiSort=this.value;draw()" style="${selStyle}">
+          <option value="recent" ${nilaiSort === "recent" ? "selected" : ""}>Urut: Terbaru</option>
+          <option value="score" ${nilaiSort === "score" ? "selected" : ""}>Urut: Skor Tertinggi</option>
+          <option value="name" ${nilaiSort === "name" ? "selected" : ""}>Urut: Nama A–Z</option>
+        </select>
+      </div>
+      <div class="row" style="gap:8px">
+        <button type="button" class="btn ghost" style="padding:9px 14px;font-size:13.5px;border-radius:10px" onclick="loadNilai(true)">${nilaiLoading ? "Memuat..." : "↻ Muat Ulang"}</button>
+        <button type="button" class="crud-btn-add" style="padding:9px 16px;font-size:13.5px" onclick="expExcelNilai()">📥 Unduh Excel</button>
+      </div>
+    </div>
+
+    ${
+      totalCount
+        ? `<div class="panel" style="padding:12px 18px;margin-bottom:16px">
+            <div class="row" style="gap:20px;font-size:13.5px;color:var(--text-muted)">
+              <span>${nilaiViewMode === "best" ? "Jumlah Siswa" : "Total Percobaan"}: <b style="color:var(--text)">${totalCount}</b></span>
+              <span>Rata-rata: <b style="color:var(--primary)">${rataSkor}</b></span>
+              <span>Tertinggi: <b style="color:var(--success)">${maxSkor}</b></span>
+              <span>Terendah: <b style="color:var(--danger)">${minSkor}</b></span>
+            </div>
+          </div>`
+        : ""
+    }
+
+    ${
+      totalCount
+        ? `<div class="panel" style="padding:0;overflow:hidden">
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr>
+                    <th style="${thStyle}">No</th>
+                    <th style="${thStyle}">Nama Siswa</th>
+                    <th style="${thStyle}">Kelas</th>
+                    <th style="${thStyle};text-align:center">Benar</th>
+                    <th style="${thStyle};text-align:center">Skor</th>
+                    <th style="${thStyle}">Waktu</th>
+                    <th style="${thStyle};text-align:right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="nilai_tbody">
+                  ${rowsHtml}
+                  <tr id="nilai_search_empty" style="display:none">
+                    <td colspan="7" style="padding:28px;text-align:center;color:var(--text-soft)">Tidak ada nama siswa yang cocok.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>`
+        : `<div class="crud-empty">Belum ada siswa yang menyelesaikan kuis ini${filterNilaiKelas !== "Semua" ? ` di ${esc(/^kelas\b/i.test(filterNilaiKelas) ? filterNilaiKelas : "Kelas " + filterNilaiKelas)}` : ""}.</div>`
+    }
+  `;
+}
+
+function expExcelNilai() {
+  const rows = getProcessedNilai();
+  if (!rows.length) return toast("Belum ada data nilai untuk diunduh");
+  const rata = Math.round(rows.reduce((a, b) => a + b.skor, 0) / rows.length);
+  const quizJudul = rows[0].quiz_judul || "Kuis";
+  const isBest = nilaiViewMode === "best";
+  const colCount = isBest ? 7 : 6;
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Rekap Nilai</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+      <style>
+        table { border-collapse: collapse; font-family: Calibri, Arial, sans-serif; }
+        th, td { border: 1px solid #cbd5e1; padding: 7px 12px; font-size: 11pt; vertical-align: middle; }
+        th { background-color: #0891b2; color: #ffffff; font-weight: bold; text-align: center; }
+        .title { border: none; font-size: 14pt; font-weight: bold; color: #083344; padding: 8px 4px 10px; }
+        .spacer { border: none; height: 10px; padding: 0; }
+        .meta { background-color: #f1f5f9; font-weight: bold; }
+        .center { text-align: center; }
+        .ok { background-color: #dcfce7; color: #15803d; font-weight: bold; text-align: center; }
+        .mid { background-color: #fef3c7; color: #92400e; font-weight: bold; text-align: center; }
+        .low { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <table>
+        <colgroup>
+          <col style="width:45px"><col style="width:230px"><col style="width:110px">
+          <col style="width:90px"><col style="width:75px">${isBest ? `<col style="width:95px">` : ""}<col style="width:165px">
+        </colgroup>
+        <tr><td colspan="${colCount}" class="title">REKAPITULASI NILAI - ${esc(quizJudul.toUpperCase())}</td></tr>
+        <tr><td colspan="2" class="meta">Mode Rekap</td><td colspan="${colCount - 2}">${isBest ? "Nilai Tertinggi per Siswa" : "Semua Percobaan"}</td></tr>
+        <tr><td colspan="2" class="meta">Jumlah Data</td><td colspan="${colCount - 2}">${rows.length} ${isBest ? "siswa" : "percobaan"}</td></tr>
+        <tr><td colspan="2" class="meta">Rata-rata Nilai</td><td colspan="${colCount - 2}">${rata}</td></tr>
+        <tr><td colspan="${colCount}" class="spacer"></td></tr>
+        <tr>
+          <th>No</th><th>Nama Siswa</th><th>Kelas</th><th>Benar</th><th>Skor</th>${isBest ? "<th>Percobaan</th>" : ""}<th>Waktu</th>
+        </tr>
+        ${rows
+          .map((r, idx) => {
+            const cls = r.skor >= 75 ? "ok" : r.skor >= 50 ? "mid" : "low";
+            const klsLabel = /^kelas\b/i.test(r.kelas) ? r.kelas : `Kelas ${r.kelas}`;
+            return `<tr>
+              <td class="center">${idx + 1}</td>
+              <td>${esc(r.nama)}</td>
+              <td class="center">${esc(klsLabel)}</td>
+              <td class="center">${r.benar} / ${r.total}</td>
+              <td class="${cls}">${r.skor}</td>
+              ${isBest ? `<td class="center">${r._attempts}x</td>` : ""}
+              <td class="center">${esc(fmtWaktuNilai(r.created_at))}</td>
+            </tr>`;
+          })
+          .join("")}
+      </table>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(["\uFEFF" + html], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const cleanTitle = quizJudul.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || "Kuis";
+  a.download = `Rekap_Nilai_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.xls`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

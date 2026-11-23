@@ -19,11 +19,19 @@ function updateLivePreview() {
   const judulInput = document.getElementById("j");
   const prevJudul = document.getElementById("prev_judul");
   const prevWaktu = document.getElementById("prev_waktu");
+  const prevCover = document.getElementById("prev_cover");
   const prevBody = document.getElementById("prev_body");
   if (!prevJudul || !prevBody) return;
 
   const judul = (judulInput?.value || "").trim() || "Judul Materi Belum Diisi";
   prevJudul.textContent = judul;
+
+  if (prevCover) {
+    const coverUrl = (document.getElementById("gambar_sampul")?.value || "").trim();
+    prevCover.innerHTML = coverUrl
+      ? `<img src="${esc(coverUrl)}" alt="${esc(judul)}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:0 0 14px;display:block">`
+      : "";
+  }
 
   let html = "";
   if (quillMateri) {
@@ -65,6 +73,35 @@ function handleGambarUpload(input) {
   reader.readAsDataURL(file);
 }
 
+function getTopikVisual(topik) {
+  const raw = String(topik || "").toLowerCase().trim();
+  let key = typeof normalizeTopik === "function" ? normalizeTopik(raw) : "umum";
+  if (key === "umum" && raw.includes("energi")) key = "energi";
+  const map = {
+    pengukuran: {
+      bg: "#e4f1ff",
+      color: "#0284c7",
+      svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>`,
+    },
+    energi: {
+      bg: "#e1f6ea",
+      color: "#16a34a",
+      svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    },
+    pemanasan: {
+      bg: "#fff1e1",
+      color: "#ea580c",
+      svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/><path d="M12 14v-4"/></svg>`,
+    },
+    umum: {
+      bg: "var(--primary-soft)",
+      color: "var(--primary)",
+      svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(-30 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(90 12 12)"/></svg>`,
+    },
+  };
+  return map[key] || map.umum;
+}
+
 function pMateri() {
   if (!edit) {
     quillMateri = null;
@@ -73,19 +110,31 @@ function pMateri() {
       (x) => filterTopikMateri === "Semua" || normalizeTopik(x.topik) === filterTopikMateri,
     );
     const items = list
-      .map(
-        (x) => `
+      .map((x) => {
+        const topikKey = normalizeTopik(x.topik);
+        const topikLabel = TOPIK_MAP[topikKey] || "Umum";
+        const vis = getTopikVisual(topikKey);
+        const thumb = x.gambar
+          ? `<img src="${esc(x.gambar)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
+          : vis.svg;
+        return `
       <div class="crud-card">
-        <div class="crud-card-left">
-          <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
-          <div class="crud-card-sub">${esc(TOPIK_MAP[normalizeTopik(x.topik)] || "Umum")}${x.gambar ? " · 🖼 Gambar Kustom" : ""} · ${hitungWaktuBaca(x.isi)}</div>
+        <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+          <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0" title="${esc(topikLabel)}">${thumb}</div>
+          <div class="crud-card-left">
+            <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
+            <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
+              <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${vis.bg};color:${vis.color}">${esc(topikLabel)}</span>
+              <span>${hitungWaktuBaca(x.isi)}</span>
+            </div>
+          </div>
         </div>
         <div class="crud-actions">
           <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
           <button class="crud-btn-icon del" onclick="del('materi','${x.id}')" title="Hapus">${ICON_TRASH}</button>
         </div>
-      </div>`,
-      )
+      </div>`;
+      })
       .join("");
 
     return `
@@ -209,6 +258,7 @@ function pMateri() {
                       <span id="prev_waktu">⏱ ${hitungWaktuBaca(m.isi)}</span>
                     </div>
                   </div>
+                  <div id="prev_cover">${m.gambar ? `<img src="${esc(m.gambar)}" alt="${esc(m.judul || "")}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:0 0 14px;display:block">` : ""}</div>
                   <div class="read-body" id="prev_body">
                     ${m.isi ? fmt(m.isi) : '<p style="color:#94a3b8;font-style:italic">Mulai mengetik di editor sebelah kiri untuk melihat tampilan langsung...</p>'}
                   </div>
@@ -397,4 +447,3 @@ function sM(id) {
   save();
   draw();
 }
-

@@ -1,7 +1,9 @@
 /* ==========================================================
    siswa-core.js — Router & Render Halaman Siswa
-   Bergantung pada: app.js (Store, NeonDB, esc, fmt, cuplikan, yt, TIPE, shell, footer)
+   Bergantung pada: app.js (Store, NeonDB, esc, fmt, cuplikan, yt, TIPE, TOPIK, TOPIK_LIST, TOPIK_MAP, normalizeTopik, getMateriArt, shell, footer)
    ========================================================== */
+
+const ICON_SEARCH_SISWA = `<svg class="crud-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
 
 /* -------------------------
    STATE GLOBAL
@@ -9,6 +11,8 @@
 let D;        // data aplikasi (dari Store / Neon)
 let run;      // state kuis yang sedang berjalan
 let lastListPage = '#home'; // halaman list terakhir, untuk tombol ← Kembali
+let qMateri = '', fTopikMateri = 'Semua';
+let qQuiz = '', fTopikQuiz = 'Semua';
 
 /* -------------------------
    NAVIGASI & ROUTER HASH
@@ -43,13 +47,78 @@ function goBack() {
 function wrapMain() {
     const m = document.querySelector('main');
     m.style.padding = '';
+    m.style.background = '';
     m.innerHTML = '<div class="wrap" id="app"></div>';
     return document.getElementById('app');
 }
 
-function cards(l, t) {
+function getExternalQuizVisual(link) {
+    const u = String(link || "").toLowerCase();
+    if (u.includes("docs.google.com/forms") || u.includes("forms.gle")) {
+        return {
+            label: "Google Forms",
+            bg: "#f3e8ff",
+            color: "#7c3aed",
+            svg: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="8.5" cy="12.5" r="0.8" fill="currentColor"/><line x1="11" y1="12.5" x2="16" y2="12.5"/><circle cx="8.5" cy="16" r="0.8" fill="currentColor"/><line x1="11" y1="16" x2="16" y2="16"/></svg>`
+        };
+    }
+    if (u.includes("quizizz.com") || u.includes("wayground.com")) {
+        return {
+            label: "Quizizz",
+            bg: "#fae8ff",
+            color: "#8854c0",
+            svg: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" fill="currentColor" opacity="0.14"/><text x="12" y="16.5" text-anchor="middle" font-size="14" font-weight="800" fill="currentColor" font-family="Plus Jakarta Sans, system-ui, sans-serif">Q</text></svg>`
+        };
+    }
+    if (u.includes("kahoot.it") || u.includes("kahoot.com")) {
+        return {
+            label: "Kahoot!",
+            bg: "#ede9fe",
+            color: "#46178f",
+            svg: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" fill="currentColor" opacity="0.14"/><text x="12" y="16.5" text-anchor="middle" font-size="13.5" font-weight="800" fill="currentColor" font-family="Plus Jakarta Sans, system-ui, sans-serif">K!</text></svg>`
+        };
+    }
+    return {
+        label: "Eksternal",
+        bg: "#f1f5f9",
+        color: "#475569",
+        svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
+    };
+}
+
+function getQuizTopicIcon(topik) {
+    const raw = String(topik || '').toLowerCase().trim();
+    let key = typeof normalizeTopik === 'function' ? normalizeTopik(raw) : 'umum';
+    if (key === 'umum' && raw.includes('energi')) key = 'energi';
+
+    const map = {
+        pengukuran: {
+            bg: '#e4f1ff',
+            color: '#0284c7',
+            svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>`
+        },
+        energi: {
+            bg: '#e1f6ea',
+            color: '#16a34a',
+            svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
+        },
+        pemanasan: {
+            bg: '#fff1e1',
+            color: '#ea580c',
+            svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/><path d="M12 14v-4"/></svg>`
+        },
+        umum: {
+            bg: 'var(--primary-soft)',
+            color: 'var(--primary)',
+            svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(-30 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(90 12 12)"/></svg>`
+        }
+    };
+    return map[key] || map.umum;
+}
+
+function cards(l, t, emptyMsg) {
     if (!l.length)
-        return `<div class="empty">${t === 'm' ? 'Tidak ada materi' : 'Tidak ada kuis'}</div>`;
+        return `<div class="empty">${emptyMsg || (t === 'm' ? 'Tidak ada materi' : 'Tidak ada kuis')}</div>`;
 
     return `<div class="grid">${l.map(x => {
         if (t === 'm') {
@@ -73,25 +142,24 @@ function cards(l, t) {
         const soalCount = isNative && Array.isArray(x.soal) ? x.soal.length : 0;
         const estMenit = x.durasi !== undefined ? (x.durasi || 'Bebas') : Math.max(5, Math.round(soalCount * 1.5));
         const diffLevel = x.level || (soalCount <= 5 ? 'Mudah' : (soalCount <= 10 ? 'Sedang' : 'Tantangan'));
-        const btnLabel = isNative ? 'Mulai kuis' : 'Buka kuis ↗';
+        const btnLabel = isNative ? 'Buka kuis' : 'Buka kuis ↗';
 
+        const extVis = !isNative ? getExternalQuizVisual(x.link) : null;
         const metaPills = isNative ? `
             <span class="quiz-meta-pill">✓ ${soalCount} soal</span>
             <span class="quiz-meta-pill">⏱ ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}</span>
             <span class="quiz-meta-pill">${diffLevel}</span>
         ` : `
-            <span class="quiz-meta-pill">🌐 Eksternal</span>
+            <span class="quiz-meta-pill">🌐 ${esc(extVis.label)}</span>
             <span class="quiz-meta-pill">⏱ Fleksibel</span>
             <span class="quiz-meta-pill">Online</span>
         `;
 
+        const icon = isNative ? getQuizTopicIcon(x.topik) : extVis;
         return `<div class="card card-quiz">
             <div class="quiz-card-top">
-                <div class="quiz-icon-box">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
-                        <path d="m7 14 4-4 4 3 6-7"/>
-                    </svg>
+                <div class="quiz-icon-box" style="background:${icon.bg};color:${icon.color}" title="${esc(isNative ? (x.topik || 'Umum') : extVis.label)}">
+                    ${icon.svg}
                 </div>
                 <h3 class="quiz-card-title">${esc(x.judul)}</h3>
             </div>
@@ -104,11 +172,57 @@ function cards(l, t) {
 }
 
 /* -------------------------
+   FILTER & PENCARIAN SISWA
+------------------------- */
+function getFilteredMateri() {
+    const q = qMateri.toLowerCase().trim();
+    return (D.materi || []).filter(x => {
+        const topikId = normalizeTopik(x.topik);
+        if (fTopikMateri !== 'Semua' && topikId !== fTopikMateri) return false;
+        if (!q) return true;
+        const hay = `${x.judul || ''} ${x.ringkasan || ''} ${TOPIK_MAP[topikId] || ''}`.toLowerCase();
+        return hay.includes(q);
+    });
+}
+
+function updateMateriList() {
+    const el = document.getElementById('materi_list');
+    if (!el) return;
+    const list = getFilteredMateri();
+    const emptyMsg = qMateri.trim() || fTopikMateri !== 'Semua'
+        ? 'Tidak ditemukan materi yang sesuai dengan pencarian atau filter.'
+        : 'Belum ada materi.';
+    el.innerHTML = cards(list, 'm', emptyMsg);
+}
+
+function getFilteredQuiz() {
+    const q = qQuiz.toLowerCase().trim();
+    return (D.quiz || []).filter(x => {
+        const topik = x.topik || 'Umum';
+        if (fTopikQuiz !== 'Semua' && topik !== fTopikQuiz) return false;
+        if (!q) return true;
+        const hay = `${x.judul || ''} ${x.deskripsi || ''} ${topik}`.toLowerCase();
+        return hay.includes(q);
+    });
+}
+
+function updateQuizList() {
+    const el = document.getElementById('quiz_list');
+    if (!el) return;
+    const list = getFilteredQuiz();
+    const emptyMsg = qQuiz.trim() || fTopikQuiz !== 'Semua'
+        ? 'Tidak ditemukan kuis yang sesuai dengan pencarian atau filter.'
+        : 'Belum ada kuis.';
+    el.innerHTML = cards(list, 'q', emptyMsg);
+}
+
+/* -------------------------
    HALAMAN HOME
 ------------------------- */
 function home() {
     const m = document.querySelector('main');
     m.style.padding = '0';
+    m.style.background = '';
     m.innerHTML = `
         <section class="hero">
             <div class="wrap">
@@ -117,12 +231,12 @@ function home() {
                 <a class="btn" href="#materi">Mulai belajar</a>
             </div>
         </section>
-        <div class="wrap" style="padding:40px 20px 20px">
-            <h2 style="margin:0 0 20px">Materi terbaru</h2>
+        <div class="wrap" style="padding:28px 16px 16px">
+            <h2 style="margin:0 0 14px">Materi terbaru</h2>
             ${cards(D.materi.slice(-3).reverse(), 'm')}
         </div>
-        <div class="wrap" style="padding:20px 20px 60px">
-            <h2 style="margin:0 0 20px">Quiz terbaru</h2>
+        <div class="wrap" style="padding:16px 16px 48px">
+            <h2 style="margin:0 0 14px">Quiz terbaru</h2>
             ${cards(D.quiz.slice(-3).reverse(), 'q')}
         </div>`;
 }
@@ -135,33 +249,35 @@ function materi(id) {
     const m = D.materi.find(x => x.id === id);
 
     if (!m) {
-        // Tampilkan daftar materi
-        a.innerHTML = `<h2>Materi</h2><p class="sub">Pilih topik yang ingin kamu pelajari.</p>${cards(D.materi, 'm')}`;
+        const topikOpts = (typeof TOPIK_LIST !== 'undefined' ? TOPIK_LIST : [])
+            .map(t => `<option value="${esc(t.id)}" ${fTopikMateri === t.id ? 'selected' : ''}>${esc(t.label)}</option>`)
+            .join('');
+
+        a.innerHTML = `
+            <div class="crud-header" style="margin-bottom:18px;gap:10px">
+                <div class="crud-search-wrap">
+                    ${ICON_SEARCH_SISWA}
+                    <input type="text" class="crud-search-input" value="${esc(qMateri)}" placeholder="Cari materi fisika..." oninput="qMateri=this.value;updateMateriList()" />
+                </div>
+                <select onchange="fTopikMateri=this.value;updateMateriList()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
+                    <option value="Semua" ${fTopikMateri === 'Semua' ? 'selected' : ''}>Semua Topik</option>
+                    ${topikOpts}
+                </select>
+            </div>
+            <div id="materi_list"></div>`;
+        updateMateriList();
         return;
     }
 
-    // Hitung estimasi waktu baca
+    document.querySelector('main').style.background = 'var(--surface)';
     const textOnly = (new DOMParser().parseFromString(m.isi || '', 'text/html').body.textContent || '').trim();
     const wordCount = textOnly ? textOnly.split(/\s+/).length : 0;
     const menitBaca = Math.max(1, Math.ceil(wordCount / 180));
-
-    const relatedQuiz = D.quiz.find(q => q.tipe === 'native');
     const legacyVid = m.video && !(m.isi || '').includes(m.video) ? yt(m.video) : '';
-
-    // Bagian Uji Pemahaman Materi disembunyikan sementara sesuai permintaan
-    const quizCTA = '';
-    /*
-    const quizCTA = relatedQuiz ? `
-        <div class="read-footer">
-            <div class="quiz-cta">
-                <div class="quiz-cta-text">
-                    <b>Uji Pemahaman Materi</b>
-                    <p>Selesaikan kuis latihan untuk mengasah pemahamanmu terkait topik ini.</p>
-                </div>
-                <a class="btn" href="#quiz/${relatedQuiz.id}">Mulai Kuis →</a>
-            </div>
-        </div>` : '';
-    */
+    const coverUrl = m.gambar ? String(m.gambar).trim() : '';
+    const coverHtml = coverUrl
+        ? `<img src="${esc(coverUrl)}" alt="${esc(m.judul)}" style="width:100%;max-height:340px;object-fit:cover;border-radius:12px;margin:0 0 22px;display:block">`
+        : '';
 
     a.innerHTML = `
         <div class="content-wrapper">
@@ -175,9 +291,9 @@ function materi(id) {
                         <span>⏱ ${menitBaca} menit baca</span>
                     </div>
                 </div>
+                ${coverHtml}
                 ${legacyVid}
                 <div class="read-body">${fmt(m.isi)}</div>
-                
             </article>
         </div>`;
 }
@@ -190,7 +306,23 @@ function quiz(id) {
     const q = D.quiz.find(x => x.id === id && x.tipe === 'native');
 
     if (!q) {
-        a.innerHTML = `<h2>Quiz</h2><p class="sub">Uji pemahaman fisikamu lewat latihan kuis.</p>${cards(D.quiz, 'q')}`;
+        const topikOpts = (typeof TOPIK !== 'undefined' ? TOPIK : [])
+            .map(t => `<option value="${esc(t)}" ${fTopikQuiz === t ? 'selected' : ''}>${esc(t)}</option>`)
+            .join('');
+
+        a.innerHTML = `
+            <div class="crud-header" style="margin-bottom:18px;gap:10px">
+                <div class="crud-search-wrap">
+                    ${ICON_SEARCH_SISWA}
+                    <input type="text" class="crud-search-input" value="${esc(qQuiz)}" placeholder="Cari kuis..." oninput="qQuiz=this.value;updateQuizList()" />
+                </div>
+                <select onchange="fTopikQuiz=this.value;updateQuizList()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
+                    <option value="Semua" ${fTopikQuiz === 'Semua' ? 'selected' : ''}>Semua Topik</option>
+                    ${topikOpts}
+                </select>
+            </div>
+            <div id="quiz_list"></div>`;
+        updateQuizList();
         return;
     }
 
@@ -199,7 +331,19 @@ function quiz(id) {
 
 function quizIntro(q) {
     const a = document.getElementById('app');
-    const durasiText = q.durasi === 0 ? 'Tanpa batas waktu' : `Estimasi ~${q.durasi || Math.max(1, Math.round(q.soal.length * 1.5))} Menit`;
+    const durasiText = q.durasi === 0
+        ? 'Tanpa batas waktu'
+        : `Estimasi ~${q.durasi || Math.max(1, Math.round(q.soal.length * 1.5))} Menit`;
+    const klsList = Array.isArray(D.daftar_kelas) ? D.daftar_kelas : [];
+    const savedKls = sessionStorage.getItem('siswa_kelas') || '';
+    const savedNama = sessionStorage.getItem('siswa_nama') || '';
+
+    const kelasField = klsList.length
+        ? `<select id="q_kelas">
+              <option value="">-- Pilih Kelas --</option>
+              ${klsList.map(k => `<option value="${esc(k)}" ${savedKls === k ? 'selected' : ''}>${esc(/^kelas\b/i.test(k) ? k : 'Kelas ' + k)}</option>`).join('')}
+           </select>`
+        : `<input id="q_kelas" value="${esc(savedKls)}" placeholder="Contoh: X A">`;
 
     a.innerHTML = `
         <div class="content-wrapper">
@@ -219,13 +363,24 @@ function quizIntro(q) {
                 <div class="quiz-rules-box">
                     <h4>📋 Petunjuk & Peraturan Kuis</h4>
                     <ol class="quiz-rules-list">
-                        <li>Baca setiap soal dan seluruh opsi jawaban dengan cermat.</li>
-                        <li>Pilih <strong>satu jawaban</strong> yang menurutmu paling tepat.</li>
-                        <li>Setelah memilih opsi, kunci jawaban dan pembahasan konsep akan langsung muncul.</li>
-                        <li>Jawaban yang sudah dipilih terkunci dan tidak dapat diubah kembali.</li>
-                        <li>Skor akhir (0–100) akan dihitung otomatis setelah seluruh soal selesai dikerjakan.</li>
+                        <li>Pilih kelas dan ketik nama lengkapmu terlebih dahulu sebelum memulai.</li>
+                        <li>Baca setiap soal dan pilih <strong>satu jawaban</strong> yang paling tepat.</li>
+                        <li>Setelah memilih opsi, kunci jawaban dan pembahasan akan langsung muncul.</li>
+                        <li>Skor akhir (0–100) otomatis tercatat untuk penilaian guru.</li>
                     </ol>
                 </div>
+
+                <div class="form-grid-2" style="margin-bottom:14px">
+                    <div>
+                        <label style="margin-top:0">Kelas</label>
+                        ${kelasField}
+                    </div>
+                    <div>
+                        <label style="margin-top:0">Nama Lengkap</label>
+                        <input id="q_nama" value="${esc(savedNama)}" placeholder="Ketik nama lengkapmu...">
+                    </div>
+                </div>
+                <div id="q_ident_err" style="display:none;color:var(--danger);font-size:13px;font-weight:600;margin-bottom:12px"></div>
 
                 <button class="btn" style="width:100%;padding:14px;font-size:16px;text-align:center" onclick="startQuiz('${q.id}')">
                     Mulai Kuis Sekarang →
@@ -243,53 +398,168 @@ function shuffleList(arr) {
     return a;
 }
 
-function startQuiz(id) {
+function startQuiz(id, retryIdent) {
     const q = D.quiz.find(x => x.id === id && x.tipe === 'native');
     if (!q) return;
+
+    let kelas = retryIdent ? retryIdent.kelas : (document.getElementById('q_kelas')?.value || '').trim();
+    let nama = retryIdent ? retryIdent.nama : (document.getElementById('q_nama')?.value || '').trim();
+    const errEl = document.getElementById('q_ident_err');
+
+    if (!kelas || !nama) {
+        if (errEl) {
+            errEl.textContent = !kelas ? 'Silakan pilih kelas terlebih dahulu.' : 'Silakan ketik nama lengkapmu terlebih dahulu.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+    sessionStorage.setItem('siswa_kelas', kelas);
+    sessionStorage.setItem('siswa_nama', nama);
+
     let soalList = (q.soal || []).map(s => {
         let opts = s.o.map((text, k) => ({ text, ok: k === s.a }));
         if (q.acakOpsi) opts = shuffleList(opts);
         return { q: s.q, e: s.e || '', o: opts.map(x => x.text), a: opts.findIndex(x => x.ok) };
     });
     if (q.acakSoal) soalList = shuffleList(soalList);
-    run = { q: { ...q, soal: soalList }, i: 0, ans: [], lock: false };
+    run = { q: { ...q, soal: soalList }, i: 0, ans: [], lock: false, kelas, nama, saved: false, streak: 0, maxStreak: 0 };
     step();
+}
+
+let quizSoundOn = localStorage.getItem('fisika_quiz_sound') !== '0';
+
+function toggleQuizSound() {
+    quizSoundOn = !quizSoundOn;
+    localStorage.setItem('fisika_quiz_sound', quizSoundOn ? '1' : '0');
+    const btn = document.getElementById('q_sound_btn');
+    if (btn) btn.textContent = quizSoundOn ? '🔊 Suara' : '🔇 Bisukan';
+}
+
+function quizSfx(type) {
+    if (!quizSoundOn) return;
+    try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        const ctx = new AC();
+        const now = ctx.currentTime;
+        const playTone = (freq, start, dur, wave = 'sine', gainVal = 0.12) => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = wave;
+            osc.frequency.setValueAtTime(freq, start);
+            g.gain.setValueAtTime(gainVal, start);
+            g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+            osc.connect(g);
+            g.connect(ctx.destination);
+            osc.start(start);
+            osc.stop(start + dur);
+        };
+        if (type === 'ok') {
+            playTone(523.25, now, 0.12, 'triangle', 0.14);
+            playTone(659.25, now + 0.08, 0.18, 'triangle', 0.14);
+        } else if (type === 'bad') {
+            playTone(220, now, 0.14, 'sawtooth', 0.07);
+            playTone(175, now + 0.1, 0.2, 'sawtooth', 0.07);
+        } else if (type === 'win') {
+            [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => playTone(f, now + idx * 0.09, 0.25, 'triangle', 0.13));
+        }
+        setTimeout(() => ctx.close().catch(() => {}), 900);
+    } catch {}
+}
+
+function launchConfetti() {
+    const wrap = document.createElement('div');
+    wrap.className = 'quiz-confetti';
+    const colors = ['#0891b2', '#22c55e', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
+    for (let c = 0; c < 36; c++) {
+        const p = document.createElement('span');
+        p.style.left = `${Math.random() * 100}%`;
+        p.style.background = colors[c % colors.length];
+        p.style.animationDelay = `${Math.random() * 0.45}s`;
+        p.style.animationDuration = `${1.3 + Math.random() * 0.9}s`;
+        wrap.appendChild(p);
+    }
+    document.body.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 2600);
 }
 
 function step() {
     const a = document.getElementById('app');
     const { q, i } = run;
 
-    // Layar hasil akhir
     if (i >= q.soal.length) {
         const benar = run.ans.filter((v, k) => v === q.soal[k].a).length;
         const pct = Math.round((benar / q.soal.length) * 100);
+        const showScore = q.tampilkanHasil !== false;
+        const klsLabel = /^kelas\b/i.test(run.kelas) ? run.kelas : `Kelas ${run.kelas}`;
+        const badge = pct === 100 ? '🏆 Sempurna!' : pct >= 80 ? '🔥 Keren Banget!' : pct >= 60 ? '👍 Mantap!' : '💪 Ayo Coba Lagi!';
+
         a.innerHTML = `
             <div class="content-wrapper">
-                <div class="qbox">
-                    <h2>${esc(q.judul)} selesai</h2>
-                    <div class="score">${pct}</div>
-                    <p class="sub">Benar ${benar} dari ${q.soal.length} soal.</p>
-                    <div class="row">
-                        <button class="btn" onclick="startQuiz('${q.id}')">Ulangi Kuis</button>
+                <div class="qbox qbox-enter" style="text-align:center">
+                    ${showScore ? `<div class="quiz-result-badge">${badge}</div>` : ''}
+                    <h2 style="margin-bottom:6px">${esc(q.judul)} selesai</h2>
+                    <p class="sub" style="margin-bottom:16px">${esc(run.nama)} · ${esc(klsLabel)}</p>
+                    ${showScore
+                        ? `<div class="score" id="q_score_num">0</div>
+                           <div class="quiz-result-stats">
+                               <span class="quiz-stat-pill">✅ Benar ${benar}/${q.soal.length}</span>
+                               ${run.maxStreak >= 2 ? `<span class="quiz-stat-pill streak">🔥 Streak Terbaik ${run.maxStreak}x</span>` : ''}
+                           </div>`
+                        : `<p class="sub">Jawabanmu sudah diterima dan tercatat oleh guru.</p>`
+                    }
+                    <div class="row" style="justify-content:center;margin-top:22px">
+                        <button class="btn" id="q_retry_btn">Ulangi Kuis</button>
                         <a class="btn ghost" href="#quiz">Selesai</a>
                     </div>
                 </div>
             </div>`;
+
+        const retryBtn = document.getElementById('q_retry_btn');
+        if (retryBtn) retryBtn.onclick = () => startQuiz(q.id, { kelas: run.kelas, nama: run.nama });
+
+        if (showScore) {
+            const numEl = document.getElementById('q_score_num');
+            let cur = 0;
+            const inc = Math.max(1, Math.ceil(pct / 22));
+            const timer = setInterval(() => {
+                cur = Math.min(pct, cur + inc);
+                if (numEl) numEl.textContent = cur;
+                if (cur >= pct) clearInterval(timer);
+            }, 22);
+            if (pct >= 70) {
+                quizSfx('win');
+                launchConfetti();
+            }
+        }
+
+        saveQuizAttempt();
         return;
     }
 
-    // Layar soal
     const s = q.soal[i];
-    const progress = (i / q.soal.length) * 100;
+    const segs = q.soal.map((item, idx) => {
+        if (idx < i) return `<span class="q-seg ${run.ans[idx] === item.a ? 'ok' : 'bad'}"></span>`;
+        if (idx === i) return `<span class="q-seg now"></span>`;
+        return `<span class="q-seg"></span>`;
+    }).join('');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     a.innerHTML = `
         <div class="content-wrapper">
-            <a class="back" href="#quiz">← Semua kuis</a>
-            <div class="qbox">
-                <div class="bar"><i style="width:${progress}%"></i></div>
-                <p class="sub">Soal ${i + 1} dari ${q.soal.length}</p>
-                <h3>${esc(s.q)}</h3>
-                ${s.o.map((o, k) => `<button class="opt" data-k="${k}">${String.fromCharCode(65 + k)}. ${esc(o)}</button>`).join('')}
+            <div class="qbox qbox-enter">
+                <div class="quiz-head" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:nowrap">
+                    <span class="quiz-step-pill" style="white-space:nowrap">Soal ${i + 1} / ${q.soal.length}</span>
+                    <div class="quiz-live-stats" style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        ${run.streak >= 2 ? `<span class="quiz-streak-pill" id="q_streak">🔥 ${run.streak}x Streak</span>` : `<span class="quiz-streak-pill" id="q_streak" style="display:none"></span>`}
+                        <button type="button" class="quiz-sound-btn" id="q_sound_btn" style="white-space:nowrap" onclick="toggleQuizSound()">${quizSoundOn ? '🔊 Suara' : '🔇 Bisukan'}</button>
+                    </div>
+                </div>
+                <div class="q-segs">${segs}</div>
+                <div class="quiz-question">${esc(s.q)}</div>
+                <div class="quiz-opts">
+                    ${s.o.map((o, k) => `<button class="opt" data-k="${k}"><span class="opt-text">${esc(o)}</span><span class="opt-mark"></span></button>`).join('')}
+                </div>
                 <div id="fb"></div>
             </div>
         </div>`;
@@ -299,19 +569,55 @@ function step() {
             if (run.lock) return;
             run.lock = true;
             const k = +b.dataset.k;
+            const isOk = k === s.a;
             run.ans[i] = k;
+
+            if (isOk) {
+                run.streak++;
+                run.maxStreak = Math.max(run.maxStreak, run.streak);
+                quizSfx('ok');
+            } else {
+                run.streak = 0;
+                quizSfx('bad');
+            }
+
+            const curSeg = a.querySelector('.q-seg.now');
+            if (curSeg) curSeg.className = `q-seg ${isOk ? 'ok' : 'bad'}`;
+            const streakEl = document.getElementById('q_streak');
+            if (streakEl) {
+                if (run.streak >= 2) {
+                    streakEl.textContent = `🔥 ${run.streak}x Streak`;
+                    streakEl.style.display = 'inline-flex';
+                    streakEl.classList.remove('pop');
+                    void streakEl.offsetWidth;
+                    streakEl.classList.add('pop');
+                } else {
+                    streakEl.style.display = 'none';
+                }
+            }
 
             a.querySelectorAll('.opt').forEach((x, j) => {
                 x.disabled = true;
-                if (j === s.a) x.classList.add('ok');
+                const mark = x.querySelector('.opt-mark');
+                if (j === s.a) {
+                    x.classList.add('ok');
+                    if (mark) mark.textContent = '✓';
+                } else if (j === k) {
+                    x.classList.add('bad');
+                    if (mark) mark.textContent = '✕';
+                } else {
+                    x.classList.add('dim');
+                }
             });
-            if (k !== s.a) b.classList.add('bad');
 
+            const praise = isOk
+                ? (run.streak >= 3 ? `🔥 Streak ${run.streak}x! Benar!` : 'Benar!')
+                : 'Kurang tepat.';
             const expHtml = s.e
-                ? `<div class="exp"><b>${k === s.a ? 'Benar.' : 'Kurang tepat.'}</b> ${esc(s.e)}</div>`
-                : '';
-            const nxLabel = i + 1 < q.soal.length ? 'Soal berikutnya' : 'Lihat hasil';
-            document.getElementById('fb').innerHTML = `${expHtml}<button class="btn" style="margin-top:16px" id="nx">${nxLabel}</button>`;
+                ? `<div class="exp ${isOk ? 'ok' : 'bad'}"><b>${praise}</b> ${esc(s.e)}</div>`
+                : `<div class="exp ${isOk ? 'ok' : 'bad'}"><b>${praise}</b></div>`;
+            const nxLabel = i + 1 < q.soal.length ? 'Soal berikutnya →' : 'Lihat hasil →';
+            document.getElementById('fb').innerHTML = `${expHtml}<div class="quiz-fb-actions"><button class="btn" id="nx">${nxLabel}</button></div>`;
 
             document.getElementById('nx').onclick = () => {
                 run.i++;
@@ -321,6 +627,24 @@ function step() {
         };
     });
 }
+
+document.addEventListener('keydown', e => {
+    if (!run || !document.querySelector('.quiz-opts')) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (run.lock) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const nx = document.getElementById('nx');
+            if (nx) { e.preventDefault(); nx.click(); }
+        }
+        return;
+    }
+    const key = e.key.toUpperCase();
+    const idx = key >= 'A' && key <= 'Z' ? key.charCodeAt(0) - 65 : (key >= '1' && key <= '9' ? +key - 1 : -1);
+    if (idx >= 0) {
+        const btn = document.querySelector(`.quiz-opts .opt[data-k="${idx}"]`);
+        if (btn) btn.click();
+    }
+});
 
 /* -------------------------
    BOOT
@@ -333,7 +657,71 @@ shell(null, [
 
 footer();
 
-addEventListener('hashchange', route);
+let ignoreNextHash = false;
+const QUIZ_LEAVE_MSG = 'Kuis masih berlangsung. Jika kamu keluar sekarang, jawabanmu akan langsung disimpan dan dihitung sebagai 1 percobaan. Yakin ingin keluar?';
+
+function isQuizInProgress() {
+    return !!(run && run.q && run.i < run.q.soal.length);
+}
+
+function saveQuizAttempt() {
+    if (!run || !run.q || run.saved || typeof NilaiDB === 'undefined') return;
+    run.saved = true;
+    const total = run.q.soal.length || 1;
+    const benar = run.ans.filter((v, k) => v === run.q.soal[k].a).length;
+    const skor = Math.round((benar / total) * 100);
+    NilaiDB.submit({
+        quiz_id: run.q.id,
+        quiz_judul: run.q.judul,
+        kelas: run.kelas,
+        nama: run.nama,
+        benar,
+        total,
+        skor
+    });
+}
+
+document.addEventListener('click', e => {
+    if (!isQuizInProgress()) return;
+    const link = e.target.closest('a[href]');
+    if (!link) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || href.startsWith('javascript:')) return;
+    if (!confirm(QUIZ_LEAVE_MSG)) {
+        e.preventDefault();
+        e.stopPropagation();
+    } else {
+        saveQuizAttempt();
+        run = null;
+    }
+}, true);
+
+addEventListener('hashchange', () => {
+    if (ignoreNextHash) {
+        ignoreNextHash = false;
+        return;
+    }
+    if (isQuizInProgress() && location.hash !== `#quiz/${run.q.id}`) {
+        if (!confirm(QUIZ_LEAVE_MSG)) {
+            ignoreNextHash = true;
+            location.hash = `#quiz/${run.q.id}`;
+            return;
+        }
+        saveQuizAttempt();
+    }
+    route();
+});
+
+addEventListener('beforeunload', e => {
+    if (!isQuizInProgress()) return;
+    e.preventDefault();
+    e.returnValue = '';
+});
+
+addEventListener('pagehide', () => {
+    if (isQuizInProgress()) saveQuizAttempt();
+});
+
 route();
 
 Store.sync(cloud => {

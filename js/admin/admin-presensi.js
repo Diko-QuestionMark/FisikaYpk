@@ -4,6 +4,16 @@ let A = null;
 let curAbsenKls = null;
 let curPertemuanNo = null;
 
+function getKelasBadge(kls) {
+  const clean = String(kls || "").replace(/^kelas\s+/i, "").trim();
+  const up = clean.toUpperCase();
+  if (/^(XII|12)\b/.test(up)) return { label: "XII", bg: "#f3e8ff", color: "#7e22ce", bar: "#9333ea" };
+  if (/^(XI|11)\b/.test(up)) return { label: "XI", bg: "#dcfce7", color: "#15803d", bar: "#16a34a" };
+  if (/^(X|10)\b/.test(up)) return { label: "X", bg: "#e0f2fe", color: "#0369a1", bar: "#0284c7" };
+  const short = (clean.split(/\s+/)[0] || "K").slice(0, 3).toUpperCase();
+  return { label: short, bg: "var(--primary-soft)", color: "var(--primary)", bar: "var(--primary)" };
+}
+
 function formatKelasLabel(kls) {
   if (!kls) return "";
   return /^kelas\b/i.test(kls) ? kls : `Kelas ${kls}`;
@@ -75,13 +85,21 @@ function pAbsen() {
         const totalSlot = getJumlahSlotPertemuan(k);
         const jumlahSiswa = (D.kelas_siswa[k] || []).length;
         const safeK = esc(k).replace(/'/g, "\\'");
+        const badge = getKelasBadge(k);
+        const pct = totalSlot ? Math.min(100, Math.round((pertemuanList.length / totalSlot) * 100)) : 0;
 
         return `
           <div class="crud-card" style="cursor:pointer" onclick="openAbsenKelas('${safeK}')">
-            <div class="crud-card-left">
-              <h3 class="crud-card-title">${esc(formatKelasLabel(k))}</h3>
-              <div class="crud-card-sub">
-                ${pertemuanList.length} / ${totalSlot} pertemuan diisi · ${jumlahSiswa} siswa
+            <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+              <div style="width:44px;height:44px;border-radius:12px;background:${badge.bg};color:${badge.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;letter-spacing:-0.02em">${esc(badge.label)}</div>
+              <div class="crud-card-left">
+                <h3 class="crud-card-title">${esc(formatKelasLabel(k))}</h3>
+                <div class="crud-card-sub">
+                  ${pertemuanList.length} / ${totalSlot} pertemuan diisi · ${jumlahSiswa} siswa
+                </div>
+                <div style="margin-top:6px;height:5px;max-width:190px;background:var(--border);border-radius:999px;overflow:hidden">
+                  <div style="height:100%;width:${pct}%;background:${badge.bar};border-radius:999px;transition:width 0.3s ease"></div>
+                </div>
               </div>
             </div>
             <div class="crud-actions">

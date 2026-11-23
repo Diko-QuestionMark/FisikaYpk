@@ -28,6 +28,7 @@ const save = () => {
 const TABS = [
   ["materi", "📚", "Materi"],
   ["quiz", "✏️", "Quiz"],
+  ["nilai", "🏆", "Nilai"],
   ["absen", "📋", "Absensi"],
   ["siswa", "👥", "Data Siswa"],
   ["site", "⚙️", "Pengaturan"],
@@ -65,6 +66,8 @@ function switchTab(nextTab) {
   if (typeof A !== "undefined") A = null;
   if (typeof previewQuizState !== "undefined") previewQuizState = null;
   if (typeof showQuizSettings !== "undefined") showQuizSettings = false;
+  if (typeof curNilaiQuizId !== "undefined") curNilaiQuizId = null;
+  if (nextTab === "nilai" && typeof nilaiLoaded !== "undefined") nilaiLoaded = false;
 
   draw();
   if (window.innerWidth <= 768) $("#sidebar")?.classList.remove("open");
@@ -228,6 +231,7 @@ function draw() {
   $("#app").innerHTML = {
     materi: pMateri,
     quiz: pQuiz,
+    nilai: pNilai,
     absen: pAbsen,
     siswa: pSiswa,
     site: pSite,
@@ -270,6 +274,23 @@ function hitungWaktuBaca(htmlOrText) {
   return `${menit} menit baca`;
 }
 
+function uiPanel({ headerLeft, headerRight = "", content = "", emptyText = "Belum ada data." }) {
+  return `<div class="panel">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+      ${headerLeft}
+      ${headerRight ? `<div>${headerRight}</div>` : ""}
+    </div>
+    ${content || `<div class="empty">${emptyText}</div>`}
+  </div>`;
+}
+
+function uiItem(idx, contentHtml, actionsHtml) {
+  return `<div class="crud-card">
+    <div class="crud-card-left">${contentHtml}</div>
+    <div class="crud-actions">${actionsHtml}</div>
+  </div>`;
+}
+
 function onCrudSearch(keyword) {
   const q = (keyword || "").toLowerCase().trim();
   const listEl = document.querySelector(".crud-card-list");
@@ -293,6 +314,46 @@ function onCrudSearch(keyword) {
     emptyEl.textContent = `Tidak ditemukan hasil pencarian "${keyword}"`;
     emptyEl.style.display = visible === 0 && cards.length > 0 ? "block" : "none";
   }
+}
+
+function uiCrudList(arr, type, sub) {
+  const placeholders = {
+    materi: "Cari materi fisika...",
+    quiz: "Cari kuis...",
+    absen: "Cari presensi...",
+    siswa: "Cari kelas atau siswa...",
+  };
+  const ph = placeholders[type] || "Cari data...";
+
+  const cards = [...(arr || [])]
+    .reverse()
+    .map(
+      (x) => `
+    <div class="crud-card">
+      <div class="crud-card-left">
+        <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
+        <div class="crud-card-sub">${esc(sub ? sub(x) : "")}</div>
+      </div>
+      <div class="crud-actions">
+        <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
+        <button class="crud-btn-icon del" onclick="del('${type}','${x.id}')" title="Hapus">${ICON_TRASH}</button>
+      </div>
+    </div>`,
+    )
+    .join("");
+
+  return `
+    <div class="crud-header">
+      <div class="crud-search-wrap">
+        ${ICON_SEARCH}
+        <input type="text" class="crud-search-input" placeholder="${ph}" oninput="onCrudSearch(this.value)" autofocus />
+      </div>
+      <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
+    </div>
+    <div class="crud-card-list">
+      ${cards || `<div class="crud-empty">Belum ada data. Silakan klik tombol <b>+ Tambah</b> untuk membuat baru.</div>`}
+    </div>
+  `;
 }
 
 function del(t, id) {

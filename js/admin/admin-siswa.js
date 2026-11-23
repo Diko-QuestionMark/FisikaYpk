@@ -55,11 +55,17 @@ function pSiswa() {
         const count = (D.kelas_siswa[k] || []).length;
         const safeK = esc(k).replace(/'/g, "\\'");
         const labelK = /^kelas\b/i.test(k) ? k : `Kelas ${k}`;
+        const badge = typeof getKelasBadge === "function"
+          ? getKelasBadge(k)
+          : { label: String(k).slice(0, 3).toUpperCase(), bg: "var(--primary-soft)", color: "var(--primary)" };
         return `
           <div class="crud-card">
-            <div class="crud-card-left">
-              <h3 class="crud-card-title">${esc(labelK)}</h3>
-              <div class="crud-card-sub">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>
+            <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+              <div style="width:44px;height:44px;border-radius:12px;background:${badge.bg};color:${badge.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;letter-spacing:-0.02em">${esc(badge.label)}</div>
+              <div class="crud-card-left">
+                <h3 class="crud-card-title">${esc(labelK)}</h3>
+                <div class="crud-card-sub">${count ? `${count} siswa terdaftar` : "Belum ada data siswa"}</div>
+              </div>
             </div>
             <div class="crud-actions">
               <button class="crud-btn-icon" onclick="curMasterKls='${safeK}';draw()" title="Edit Siswa">${ICON_EDIT}</button>
@@ -119,4 +125,3 @@ function saveMasterSiswa() {
   toast("Tersimpan");
   draw();
 }
-

@@ -86,6 +86,105 @@ const NeonDB = {
     }
 };
 
+
+/* Penyimpanan Nilai Kuis (Tabel Terpisah quiz_results di NeonDB — Aman Submit Bersamaan) */
+const NILAI_KEY = 'fisika_nilai_v1';
+
+const NilaiDB = {
+    _ready: false,
+
+    async ensureTable() {
+        if (this._ready) return;
+        await NeonDB.query(`
+            CREATE TABLE IF NOT EXISTS quiz_results (
+                id TEXT PRIMARY KEY,
+                quiz_id TEXT NOT NULL,
+                quiz_judul TEXT NOT NULL,
+                kelas TEXT NOT NULL,
+                nama TEXT NOT NULL,
+                benar INT NOT NULL,
+                total INT NOT NULL,
+                skor INT NOT NULL,
+                created_at BIGINT NOT NULL
+            );
+        `);
+        this._ready = true;
+    },
+
+    getLocal() {
+        try { return JSON.parse(localStorage.getItem(NILAI_KEY)) || []; }
+        catch (e) { return []; }
+    },
+
+    saveLocal(list) {
+        try { localStorage.setItem(NILAI_KEY, JSON.stringify(list)); } catch (e) {}
+    },
+
+    async submit(rec) {
+        const item = {
+            id: Store.uid('n'),
+            quiz_id: String(rec.quiz_id || ''),
+            quiz_judul: String(rec.quiz_judul || ''),
+            kelas: String(rec.kelas || ''),
+            nama: String(rec.nama || '').trim(),
+            benar: Number(rec.benar) || 0,
+            total: Number(rec.total) || 0,
+            skor: Number(rec.skor) || 0,
+            created_at: Date.now()
+        };
+        const local = this.getLocal();
+        local.unshift(item);
+        this.saveLocal(local);
+        try {
+            await this.ensureTable();
+            await NeonDB.query(
+                `INSERT INTO quiz_results (id, quiz_id, quiz_judul, kelas, nama, benar, total, skor, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
+                [item.id, item.quiz_id, item.quiz_judul, item.kelas, item.nama, item.benar, item.total, item.skor, item.created_at]
+            );
+            return { ok: true, synced: true, item };
+        } catch (e) {
+            console.warn('[NilaiDB] Insert cloud gagal, tersimpan lokal:', e);
+            return { ok: true, synced: false, item };
+        }
+    },
+
+    async list() {
+        try {
+            await this.ensureTable();
+            const rows = await NeonDB.query(
+                `SELECT id, quiz_id, quiz_judul, kelas, nama, benar, total, skor, created_at
+                 FROM quiz_results ORDER BY created_at DESC LIMIT 1000;`
+            );
+            const normalized = (rows || []).map(r => ({
+                ...r,
+                benar: Number(r.benar) || 0,
+                total: Number(r.total) || 0,
+                skor: Number(r.skor) || 0,
+                created_at: Number(r.created_at) || 0
+            }));
+            this.saveLocal(normalized);
+            return normalized;
+        } catch (e) {
+            console.warn('[NilaiDB] Fetch cloud gagal, tampilkan lokal:', e);
+            return this.getLocal();
+        }
+    },
+
+    async remove(id) {
+        const local = this.getLocal().filter(x => x.id !== id);
+        this.saveLocal(local);
+        try {
+            await this.ensureTable();
+            await NeonDB.query(`DELETE FROM quiz_results WHERE id = $1;`, [id]);
+            return true;
+        } catch (e) {
+            console.warn('[NilaiDB] Delete cloud gagal:', e);
+            return false;
+        }
+    }
+};
+
 /* Konfigurasi & Helper Topik Materi */
 const TOPIK_LIST = [
     { id: 'pengukuran', label: 'Hakikat Fisika & Pengukuran' },
@@ -112,7 +211,7 @@ function normalizeTopik(t) {
     if (!t) return 'umum';
     const s = String(t).toLowerCase().trim();
     if (s === 'pengukuran' || s.includes('pengukuran') || s.includes('hakikat')) return 'pengukuran';
-    if (s === 'energi') return 'energi';
+    if (s === 'energi' || s.includes('energi')) return 'energi';
     if (s === 'pemanasan' || s.includes('global') || s.includes('pemanasan')) return 'pemanasan';
     return 'umum';
 }
