@@ -50,6 +50,29 @@ function updateLivePreview() {
   } else {
     prevBody.innerHTML = fmt(html);
   }
+
+  const prevQuiz = document.getElementById("prev_quiz");
+  if (prevQuiz) {
+    const qid = (document.getElementById("quiz_terkait")?.value || "").trim();
+    const lq = qid ? (D.quiz || []).find((x) => x.id === qid) : null;
+    if (lq) {
+      const isNative = lq.tipe === "native";
+      const info = isNative
+        ? `${(lq.soal || []).length} soal · ${lq.durasi === 0 ? "Tanpa batas" : (lq.durasi || Math.max(1, Math.round((lq.soal || []).length * 1.5))) + " menit"}`
+        : "Kuis Eksternal";
+      prevQuiz.innerHTML = `
+        <div style="margin-top:24px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="min-width:0">
+            <div style="font-size:11.5px;font-weight:700;color:var(--primary);margin-bottom:2px">Uji Pemahaman</div>
+            <div style="font-size:14.5px;font-weight:700;color:var(--text)">${esc(lq.judul)}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(info)}</div>
+          </div>
+          <span class="btn sm" style="pointer-events:none">${isNative ? "Kerjakan kuis →" : "Buka kuis ↗"}</span>
+        </div>`;
+    } else {
+      prevQuiz.innerHTML = "";
+    }
+  }
 }
 
 function handleGambarUpload(input) {
@@ -126,6 +149,7 @@ function pMateri() {
             <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
               <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${vis.bg};color:${vis.color}">${esc(topikLabel)}</span>
               <span>${hitungWaktuBaca(x.isi)}</span>
+              ${x.quizId && (D.quiz || []).some((q) => q.id === x.quizId) ? `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:#ecfeff;color:#0e7490">📝 Ada kuis</span>` : ""}
             </div>
           </div>
         </div>
@@ -168,13 +192,21 @@ function pMateri() {
   }
 
   const m = edit === "new"
-    ? { judul: "", topik: filterTopikMateri !== "Semua" ? filterTopikMateri : "umum", gambar: "", isi: "" }
+    ? { judul: "", topik: filterTopikMateri !== "Semua" ? filterTopikMateri : "umum", gambar: "", quizId: "", isi: "" }
     : (D.materi.find((x) => x.id === edit) || {
         judul: "",
         topik: "umum",
         gambar: "",
+        quizId: "",
         isi: "",
       });
+
+  const quizOpts = (D.quiz || [])
+    .map((q) => {
+      const tag = q.tipe === "native" ? `${(q.soal || []).length} soal` : "Eksternal";
+      return `<option value="${esc(q.id)}" ${m.quizId === q.id ? "selected" : ""}>${esc(q.judul || "Tanpa Judul")} (${tag})</option>`;
+    })
+    .join("");
 
   const curTopik = normalizeTopik(m.topik);
 
@@ -227,6 +259,16 @@ function pMateri() {
               ${m.gambar ? `<button type="button" class="btn sm ghost" onclick="$('#gambar_sampul').value='';updateLivePreview();" title="Hapus gambar sampul" style="color:var(--danger)">Hapus</button>` : ""}
             </div>
           </div>
+          <div style="margin-bottom:14px">
+            <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span>Sematan Kuis Terkait</span>
+              <span style="font-size:12px;color:var(--text-muted);font-weight:400">opsional, tampil di bawah materi</span>
+            </label>
+            <select id="quiz_terkait" onchange="updateLivePreview()">
+              <option value="">-- Tidak ada kuis terkait --</option>
+              ${quizOpts}
+            </select>
+          </div>
           <label style="margin-top:14px">Isi Materi</label>
           <div class="quill-wrapper" style="margin-bottom:16px">
             <div id="quill_editor"></div>
@@ -262,6 +304,7 @@ function pMateri() {
                   <div class="read-body" id="prev_body">
                     ${m.isi ? fmt(m.isi) : '<p style="color:#94a3b8;font-style:italic">Mulai mengetik di editor sebelah kiri untuk melihat tampilan langsung...</p>'}
                   </div>
+                  <div id="prev_quiz"></div>
                 </article>
               </div>
               <div class="device-home-bar"></div>
@@ -433,6 +476,7 @@ function sM(id) {
     judul: $("#j").value.trim(),
     topik: topikNormalized,
     gambar: gambarVal,
+    quizId: ($("#quiz_terkait")?.value || "").trim(),
     kategori: existing?.kategori || "Umum",
     ringkasan: cuplikan(isiContent),
     video: existing?.video || "",

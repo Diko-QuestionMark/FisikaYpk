@@ -10,7 +10,7 @@ const ICON_SEARCH_SISWA = `<svg class="crud-search-icon" width="18" height="18" 
 ------------------------- */
 let D;        // data aplikasi (dari Store / Neon)
 let run;      // state kuis yang sedang berjalan
-let lastListPage = '#home'; // halaman list terakhir, untuk tombol ← Kembali
+let navStack = []; // riwayat halaman untuk tombol ← Kembali yang akurat
 let qMateri = '', fTopikMateri = 'Semua';
 let qQuiz = '', fTopikQuiz = 'Semua';
 
@@ -26,19 +26,34 @@ function setNav(k) {
 }
 
 function route() {
+    clearQuizTimer();
     run = null;
     D = Store.get();
     const currentHash = location.hash || '#home';
     const [k = 'home', id] = currentHash.slice(1).split('/');
     const page = k || 'home';
-    if (!id) lastListPage = currentHash;
+
+    if (!id) {
+        navStack = [currentHash];
+    } else if (navStack.length >= 2 && navStack[navStack.length - 2] === currentHash) {
+        navStack.pop();
+    } else if (navStack[navStack.length - 1] !== currentHash) {
+        navStack.push(currentHash);
+    }
+
     setNav(page);
     scrollTo(0, 0);
     ({ home, materi, quiz }[page] || home)(id);
 }
 
 function goBack() {
-    location.hash = lastListPage || '#home';
+    if (navStack.length >= 2) {
+        navStack.pop();
+        location.hash = navStack[navStack.length - 1];
+        return;
+    }
+    const [k = 'home'] = (location.hash || '#home').slice(1).split('/');
+    location.hash = k === 'materi' ? '#materi' : (k === 'quiz' ? '#quiz' : '#home');
 }
 
 /* -------------------------
@@ -141,32 +156,27 @@ function cards(l, t, emptyMsg) {
         const isNative = x.tipe === 'native';
         const soalCount = isNative && Array.isArray(x.soal) ? x.soal.length : 0;
         const estMenit = x.durasi !== undefined ? (x.durasi || 'Bebas') : Math.max(5, Math.round(soalCount * 1.5));
-        const diffLevel = x.level || (soalCount <= 5 ? 'Mudah' : (soalCount <= 10 ? 'Sedang' : 'Tantangan'));
-        const btnLabel = isNative ? 'Buka kuis' : 'Buka kuis ↗';
-
         const extVis = !isNative ? getExternalQuizVisual(x.link) : null;
-        const metaPills = isNative ? `
-            <span class="quiz-meta-pill">✓ ${soalCount} soal</span>
-            <span class="quiz-meta-pill">⏱ ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}</span>
-            <span class="quiz-meta-pill">${diffLevel}</span>
-        ` : `
-            <span class="quiz-meta-pill">🌐 ${esc(extVis.label)}</span>
-            <span class="quiz-meta-pill">⏱ Fleksibel</span>
-            <span class="quiz-meta-pill">Online</span>
-        `;
-
         const icon = isNative ? getQuizTopicIcon(x.topik) : extVis;
-        return `<div class="card card-quiz">
-            <div class="quiz-card-top">
-                <div class="quiz-icon-box" style="background:${icon.bg};color:${icon.color}" title="${esc(isNative ? (x.topik || 'Umum') : extVis.label)}">
+        const topicLabel = isNative ? (x.topik || 'Umum') : extVis.label;
+        const descText = (x.deskripsi || '').trim() || (isNative
+            ? `Latihan soal pilihan ganda untuk topik ${topicLabel.toLowerCase()}.`
+            : `Kuis daring melalui ${extVis.label}.`);
+        const metaText = isNative
+            ? `${soalCount} soal · ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}`
+            : `${extVis.label} · Online`;
+        const btnLabel = isNative ? 'Buka kuis →' : 'Buka kuis ↗';
+
+        return `<div class="card card-quiz clickable" onclick="${handler}">
+            <div class="quiz-card-head">
+                <div class="quiz-icon-box" style="background:${icon.bg};color:${icon.color}" title="${esc(topicLabel)}">
                     ${icon.svg}
                 </div>
-                <h3 class="quiz-card-title">${esc(x.judul)}</h3>
+                <span class="quiz-card-submeta">${esc(metaText)}</span>
             </div>
-            <div class="quiz-card-meta">
-                ${metaPills}
-            </div>
-            <button class="quiz-card-btn" onclick="${handler}">${btnLabel}</button>
+            <h3 class="quiz-card-title">${esc(x.judul)}</h3>
+            <p class="quiz-card-desc">${esc(descText)}</p>
+            <span class="card-action">${btnLabel}</span>
         </div>`;
     }).join('')}</div>`;
 }
@@ -279,6 +289,37 @@ function materi(id) {
         ? `<img src="${esc(coverUrl)}" alt="${esc(m.judul)}" style="width:100%;max-height:340px;object-fit:cover;border-radius:12px;margin:0 0 22px;display:block">`
         : '';
 
+    const linkedQuiz = m.quizId ? (D.quiz || []).find(q => q.id === m.quizId) : null;
+    let quizEmbedHtml = '';
+    if (linkedQuiz) {
+        const isNative = linkedQuiz.tipe === 'native';
+        const extVis = !isNative ? getExternalQuizVisual(linkedQuiz.link) : null;
+        const qIcon = isNative ? getQuizTopicIcon(linkedQuiz.topik) : extVis;
+        const soalCount = isNative && Array.isArray(linkedQuiz.soal) ? linkedQuiz.soal.length : 0;
+        const durasiMnt = isNative ? getQuizDurasiMenit(linkedQuiz) : 0;
+        const qMeta = isNative
+            ? `${soalCount} soal · ${durasiMnt === 0 ? 'Tanpa batas' : durasiMnt + ' menit'}`
+            : `${extVis.label} · Online`;
+        const qAction = isNative
+            ? `<a class="btn" href="#quiz/${esc(linkedQuiz.id)}" style="white-space:nowrap">Kerjakan kuis →</a>`
+            : `<a class="btn" href="${esc(linkedQuiz.link)}" target="_blank" rel="noopener" style="white-space:nowrap">Buka kuis ↗</a>`;
+
+        quizEmbedHtml = `
+            <div class="read-footer">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 20px;background:var(--bg);border:1.5px solid var(--border);border-radius:14px">
+                    <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+                        <div class="quiz-icon-box" style="background:${qIcon.bg};color:${qIcon.color}">${qIcon.svg}</div>
+                        <div style="min-width:0">
+                            <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:2px">Sudah selesai baca? Uji pemahamanmu</div>
+                            <div style="font-size:16px;font-weight:700;color:var(--text);line-height:1.3">${esc(linkedQuiz.judul)}</div>
+                            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${esc(qMeta)}</div>
+                        </div>
+                    </div>
+                    ${qAction}
+                </div>
+            </div>`;
+    }
+
     a.innerHTML = `
         <div class="content-wrapper">
             <div class="read-topbar">
@@ -294,6 +335,7 @@ function materi(id) {
                 ${coverHtml}
                 ${legacyVid}
                 <div class="read-body">${fmt(m.isi)}</div>
+                ${quizEmbedHtml}
             </article>
         </div>`;
 }
@@ -329,11 +371,68 @@ function quiz(id) {
     quizIntro(q);
 }
 
+function getQuizDurasiMenit(q) {
+    if (q.durasi === 0 || q.durasi === '0') return 0;
+    const n = Number(q.durasi);
+    return n > 0 ? n : Math.max(1, Math.round((q.soal?.length || 1) * 1.5));
+}
+
+function formatTimer(sec) {
+    const s = Math.max(0, Math.ceil(sec));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+}
+
+function clearQuizTimer() {
+    if (run && run.timerId) {
+        clearInterval(run.timerId);
+        run.timerId = null;
+    }
+}
+
+function updateTimerUI() {
+    const el = document.getElementById('q_timer');
+    if (!el || !run || !run.endAt) return;
+    const left = Math.max(0, Math.ceil((run.endAt - Date.now()) / 1000));
+    el.textContent = `⏱ ${formatTimer(left)}`;
+    if (left <= 60) {
+        el.style.background = '#fef2f2';
+        el.style.borderColor = '#fecaca';
+        el.style.color = '#dc2626';
+    } else {
+        el.style.background = 'var(--bg)';
+        el.style.borderColor = 'var(--border)';
+        el.style.color = 'var(--text)';
+    }
+}
+
+function startQuizTimer() {
+    clearQuizTimer();
+    if (!run || !run.endAt) return;
+    run.timerId = setInterval(() => {
+        if (!isQuizInProgress()) {
+            clearQuizTimer();
+            return;
+        }
+        const left = Math.ceil((run.endAt - Date.now()) / 1000);
+        updateTimerUI();
+        if (left <= 0) {
+            clearQuizTimer();
+            run.timedOut = true;
+            run.lock = true;
+            run.i = run.q.soal.length;
+            step();
+        }
+    }, 500);
+}
+
 function quizIntro(q) {
     const a = document.getElementById('app');
-    const durasiText = q.durasi === 0
+    const durasiMenit = getQuizDurasiMenit(q);
+    const durasiText = durasiMenit === 0
         ? 'Tanpa batas waktu'
-        : `Estimasi ~${q.durasi || Math.max(1, Math.round(q.soal.length * 1.5))} Menit`;
+        : `Batas waktu ${durasiMenit} menit`;
     const klsList = Array.isArray(D.daftar_kelas) ? D.daftar_kelas : [];
     const savedKls = sessionStorage.getItem('siswa_kelas') || '';
     const savedNama = sessionStorage.getItem('siswa_nama') || '';
@@ -366,6 +465,7 @@ function quizIntro(q) {
                         <li>Pilih kelas dan ketik nama lengkapmu terlebih dahulu sebelum memulai.</li>
                         <li>Baca setiap soal dan pilih <strong>satu jawaban</strong> yang paling tepat.</li>
                         <li>Setelah memilih opsi, kunci jawaban dan pembahasan akan langsung muncul.</li>
+                        ${durasiMenit > 0 ? `<li>Batas waktu pengerjaan <strong>${durasiMenit} menit</strong>; jika waktu habis, jawaban otomatis dikumpulkan.</li>` : ''}
                         <li>Skor akhir (0–100) otomatis tercatat untuk penilaian guru.</li>
                     </ol>
                 </div>
@@ -422,7 +522,11 @@ function startQuiz(id, retryIdent) {
         return { q: s.q, e: s.e || '', o: opts.map(x => x.text), a: opts.findIndex(x => x.ok) };
     });
     if (q.acakSoal) soalList = shuffleList(soalList);
-    run = { q: { ...q, soal: soalList }, i: 0, ans: [], lock: false, kelas, nama, saved: false, streak: 0, maxStreak: 0 };
+    clearQuizTimer();
+    const durasiMenit = getQuizDurasiMenit(q);
+    const endAt = durasiMenit > 0 ? Date.now() + durasiMenit * 60 * 1000 : null;
+    run = { q: { ...q, soal: soalList }, i: 0, ans: [], lock: false, kelas, nama, saved: false, streak: 0, maxStreak: 0, endAt, timerId: null, timedOut: false };
+    startQuizTimer();
     step();
 }
 
@@ -488,17 +592,20 @@ function step() {
     const { q, i } = run;
 
     if (i >= q.soal.length) {
+        clearQuizTimer();
         const benar = run.ans.filter((v, k) => v === q.soal[k].a).length;
         const pct = Math.round((benar / q.soal.length) * 100);
         const showScore = q.tampilkanHasil !== false;
         const klsLabel = /^kelas\b/i.test(run.kelas) ? run.kelas : `Kelas ${run.kelas}`;
-        const badge = pct === 100 ? '🏆 Sempurna!' : pct >= 80 ? '🔥 Keren Banget!' : pct >= 60 ? '👍 Mantap!' : '💪 Ayo Coba Lagi!';
+        const badge = run.timedOut
+            ? '⏰ Waktu Habis'
+            : (pct === 100 ? '🏆 Sempurna!' : pct >= 80 ? '🔥 Keren Banget!' : pct >= 60 ? '👍 Mantap!' : '💪 Ayo Coba Lagi!');
 
         a.innerHTML = `
             <div class="content-wrapper">
                 <div class="qbox qbox-enter" style="text-align:center">
-                    ${showScore ? `<div class="quiz-result-badge">${badge}</div>` : ''}
-                    <h2 style="margin-bottom:6px">${esc(q.judul)} selesai</h2>
+                    ${showScore || run.timedOut ? `<div class="quiz-result-badge">${badge}</div>` : ''}
+                    <h2 style="margin-bottom:6px">${esc(q.judul)} ${run.timedOut ? 'berakhir' : 'selesai'}</h2>
                     <p class="sub" style="margin-bottom:16px">${esc(run.nama)} · ${esc(klsLabel)}</p>
                     ${showScore
                         ? `<div class="score" id="q_score_num">0</div>
@@ -552,6 +659,7 @@ function step() {
                     <span class="quiz-step-pill" style="white-space:nowrap">Soal ${i + 1} / ${q.soal.length}</span>
                     <div class="quiz-live-stats" style="display:flex;align-items:center;gap:8px;margin-left:auto">
                         ${run.streak >= 2 ? `<span class="quiz-streak-pill" id="q_streak">🔥 ${run.streak}x Streak</span>` : `<span class="quiz-streak-pill" id="q_streak" style="display:none"></span>`}
+                        ${run.endAt ? `<span id="q_timer" style="display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap">⏱ ${formatTimer((run.endAt - Date.now()) / 1000)}</span>` : ''}
                         <button type="button" class="quiz-sound-btn" id="q_sound_btn" style="white-space:nowrap" onclick="toggleQuizSound()">${quizSoundOn ? '🔊 Suara' : '🔇 Bisukan'}</button>
                     </div>
                 </div>
@@ -564,6 +672,7 @@ function step() {
             </div>
         </div>`;
 
+    updateTimerUI();
     a.querySelectorAll('.opt').forEach(b => {
         b.onclick = () => {
             if (run.lock) return;
@@ -691,6 +800,7 @@ document.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
     } else {
+        clearQuizTimer();
         saveQuizAttempt();
         run = null;
     }
