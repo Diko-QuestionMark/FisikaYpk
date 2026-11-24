@@ -167,16 +167,22 @@ function cards(l, t, emptyMsg) {
             : `${extVis.label} · Online`;
         const btnLabel = isNative ? 'Buka kuis →' : 'Buka kuis ↗';
 
+        const linkedMateri = (D.materi || []).find(m => m.quizId === x.id && m.gambar && String(m.gambar).trim());
+        const bannerInner = linkedMateri
+            ? `<img src="${esc(String(linkedMateri.gambar).trim())}" alt="${esc(x.judul)}" loading="lazy" />
+               <div class="quiz-banner-shade"></div>`
+            : `<div class="quiz-banner-icon" style="color:${icon.color}">${icon.svg}</div>`;
+
         return `<div class="card card-quiz clickable" onclick="${handler}">
-            <div class="quiz-card-head">
-                <div class="quiz-icon-box" style="background:${icon.bg};color:${icon.color}" title="${esc(topicLabel)}">
-                    ${icon.svg}
-                </div>
-                <span class="quiz-card-submeta">${esc(metaText)}</span>
+            <div class="quiz-banner${linkedMateri ? ' has-img' : ''}" style="--qb-bg:${icon.bg};--qb-color:${icon.color}">
+                ${bannerInner}
+                <span class="quiz-banner-pill">${esc(metaText)}</span>
             </div>
-            <h3 class="quiz-card-title">${esc(x.judul)}</h3>
-            <p class="quiz-card-desc">${esc(descText)}</p>
-            <span class="card-action">${btnLabel}</span>
+            <div class="card-materi-body">
+                <h3 class="quiz-card-title">${esc(x.judul)}</h3>
+                <p class="quiz-card-desc">${esc(descText)}</p>
+                <span class="card-action">${btnLabel}</span>
+            </div>
         </div>`;
     }).join('')}</div>`;
 }
