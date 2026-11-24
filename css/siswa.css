@@ -312,7 +312,7 @@ h2 {
 
   position: relative;
 
-  height: 112px;
+  height: 96px;
 
   background:
 
@@ -356,7 +356,7 @@ h2 {
 
   inset: 0;
 
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.04) 20%, rgba(15, 23, 42, 0.42) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.88) 100%);
 
 }
 
@@ -398,31 +398,85 @@ h2 {
 
 
 
-.quiz-banner-pill {
+.quiz-chips {
 
-  position: absolute;
+  display: flex;
 
-  left: 12px;
+  align-items: center;
 
-  bottom: 10px;
+  gap: 6px;
 
-  z-index: 1;
+  flex-wrap: wrap;
 
-  background: rgba(255, 255, 255, 0.92);
+  margin-top: 2px;
 
-  color: var(--text);
+}
 
-  font-size: 12px;
 
-  font-weight: 700;
+
+.quiz-chip {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  background: var(--bg);
+
+  color: var(--text-muted);
+
+  font-size: 12.5px;
+
+  font-weight: 600;
 
   padding: 4px 10px;
 
   border-radius: 999px;
 
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-
   white-space: nowrap;
+
+}
+
+
+
+.quiz-start-btn {
+
+  margin-top: auto;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  align-self: flex-start;
+
+  background: var(--primary-soft);
+
+  color: var(--primary-hover);
+
+  font-size: 13.5px;
+
+  font-weight: 700;
+
+  padding: 7px 14px;
+
+  border-radius: 9px;
+
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+}
+
+
+
+.card.card-quiz:hover .quiz-start-btn {
+
+  background: var(--primary);
+
+  color: #fff;
 
 }
 

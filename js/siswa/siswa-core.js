@@ -8,11 +8,19 @@ const ICON_SEARCH_SISWA = `<svg class="crud-search-icon" width="18" height="18" 
 /* -------------------------
    STATE GLOBAL
 ------------------------- */
-let D;        // data aplikasi (dari Store / Neon)
+let D;        // data aplikasi (dari Store / Neon)a
 let run;      // state kuis yang sedang berjalan
 let navStack = []; // riwayat halaman untuk tombol ← Kembali yang akurat
 let qMateri = '', fTopikMateri = 'Semua';
 let qQuiz = '', fTopikQuiz = 'Semua';
+let fKelasSiswa = (typeof normalizeKelasLevel === 'function' ? normalizeKelasLevel(localStorage.getItem('fisika_siswa_tingkat')) : 'semua');
+
+function setKelasSiswaFilter(val, target) {
+    fKelasSiswa = typeof normalizeKelasLevel === 'function' ? normalizeKelasLevel(val) : 'semua';
+    localStorage.setItem('fisika_siswa_tingkat', fKelasSiswa);
+    if (target === 'materi') updateMateriList();
+    else updateQuizList();
+}
 
 /* -------------------------
    NAVIGASI & ROUTER HASH
@@ -158,30 +166,29 @@ function cards(l, t, emptyMsg) {
         const estMenit = x.durasi !== undefined ? (x.durasi || 'Bebas') : Math.max(5, Math.round(soalCount * 1.5));
         const extVis = !isNative ? getExternalQuizVisual(x.link) : null;
         const icon = isNative ? getQuizTopicIcon(x.topik) : extVis;
-        const topicLabel = isNative ? (x.topik || 'Umum') : extVis.label;
-        const descText = (x.deskripsi || '').trim() || (isNative
-            ? `Latihan soal pilihan ganda untuk topik ${topicLabel.toLowerCase()}.`
-            : `Kuis daring melalui ${extVis.label}.`);
-        const metaText = isNative
-            ? `${soalCount} soal · ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}`
-            : `${extVis.label} · Online`;
-        const btnLabel = isNative ? 'Buka kuis →' : 'Buka kuis ↗';
-
         const linkedMateri = (D.materi || []).find(m => m.quizId === x.id && m.gambar && String(m.gambar).trim());
         const bannerInner = linkedMateri
             ? `<img src="${esc(String(linkedMateri.gambar).trim())}" alt="${esc(x.judul)}" loading="lazy" />
                <div class="quiz-banner-shade"></div>`
             : `<div class="quiz-banner-icon" style="color:${icon.color}">${icon.svg}</div>`;
 
+        const chipsHtml = isNative
+            ? `<span class="quiz-chip">📝 ${soalCount} soal</span>
+               <span class="quiz-chip">⏱ ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}</span>`
+            : `<span class="quiz-chip">🌐 ${esc(extVis.label)}</span>
+               <span class="quiz-chip">Online</span>`;
+
+        const startLabel = isNative ? 'Kerjakan →' : 'Buka ↗';
+
         return `<div class="card card-quiz clickable" onclick="${handler}">
             <div class="quiz-banner${linkedMateri ? ' has-img' : ''}" style="--qb-bg:${icon.bg};--qb-color:${icon.color}">
                 ${bannerInner}
-                <span class="quiz-banner-pill">${esc(metaText)}</span>
+                
             </div>
             <div class="card-materi-body">
                 <h3 class="quiz-card-title">${esc(x.judul)}</h3>
-                <p class="quiz-card-desc">${esc(descText)}</p>
-                <span class="card-action">${btnLabel}</span>
+                <div class="quiz-chips">${chipsHtml}</div>
+                <span class="quiz-start-btn">${startLabel}</span>
             </div>
         </div>`;
     }).join('')}</div>`;
@@ -190,9 +197,13 @@ function cards(l, t, emptyMsg) {
 /* -------------------------
    FILTER & PENCARIAN SISWA
 ------------------------- */
+const isPublishedItem = x => !!(x && x.published !== false);
+
 function getFilteredMateri() {
     const q = qMateri.toLowerCase().trim();
     return (D.materi || []).filter(x => {
+        if (!isPublishedItem(x)) return false;
+        if (typeof matchKelasFilter === 'function' && !matchKelasFilter(x.kelas, fKelasSiswa)) return false;
         const topikId = normalizeTopik(x.topik);
         if (fTopikMateri !== 'Semua' && topikId !== fTopikMateri) return false;
         if (!q) return true;
@@ -214,6 +225,8 @@ function updateMateriList() {
 function getFilteredQuiz() {
     const q = qQuiz.toLowerCase().trim();
     return (D.quiz || []).filter(x => {
+        if (!isPublishedItem(x)) return false;
+        if (typeof matchKelasFilter === 'function' && !matchKelasFilter(x.kelas, fKelasSiswa)) return false;
         const topik = x.topik || 'Umum';
         if (fTopikQuiz !== 'Semua' && topik !== fTopikQuiz) return false;
         if (!q) return true;
@@ -242,14 +255,16 @@ function home() {
 
     const materiWithCover = [...(D.materi || [])]
         .reverse()
-        .filter(x => x.gambar && String(x.gambar).trim())
+        .filter(x => isPublishedItem(x) && x.gambar && String(x.gambar).trim())
         .slice(0, 3);
 
     const quizWithCover = [...(D.quiz || [])]
         .reverse()
         .filter(q =>
-            (q.gambar && String(q.gambar).trim()) ||
-            (D.materi || []).some(x => x.quizId === q.id && x.gambar && String(x.gambar).trim())
+            isPublishedItem(q) && (
+                (q.gambar && String(q.gambar).trim()) ||
+                (D.materi || []).some(x => isPublishedItem(x) && x.quizId === q.id && x.gambar && String(x.gambar).trim())
+            )
         )
         .slice(0, 3);
 
@@ -276,11 +291,14 @@ function home() {
 ------------------------- */
 function materi(id) {
     const a = wrapMain();
-    const m = D.materi.find(x => x.id === id);
+    const m = (D.materi || []).find(x => x.id === id && isPublishedItem(x));
 
     if (!m) {
         const topikOpts = (typeof TOPIK_LIST !== 'undefined' ? TOPIK_LIST : [])
             .map(t => `<option value="${esc(t.id)}" ${fTopikMateri === t.id ? 'selected' : ''}>${esc(t.label)}</option>`)
+            .join('');
+        const kelasOpts = (typeof KELAS_LEVEL_LIST !== 'undefined' ? KELAS_LEVEL_LIST : [])
+            .map(k => `<option value="${esc(k.id)}" ${fKelasSiswa === k.id ? 'selected' : ''}>${esc(k.label)}</option>`)
             .join('');
 
         a.innerHTML = `
@@ -289,10 +307,15 @@ function materi(id) {
                     ${ICON_SEARCH_SISWA}
                     <input type="text" class="crud-search-input" value="${esc(qMateri)}" placeholder="Cari materi fisika..." oninput="qMateri=this.value;updateMateriList()" />
                 </div>
-                <select onchange="fTopikMateri=this.value;updateMateriList()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
-                    <option value="Semua" ${fTopikMateri === 'Semua' ? 'selected' : ''}>Semua Topik</option>
-                    ${topikOpts}
-                </select>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <select onchange="setKelasSiswaFilter(this.value,'materi')" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
+                        ${kelasOpts}
+                    </select>
+                    <select onchange="fTopikMateri=this.value;updateMateriList()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
+                        <option value="Semua" ${fTopikMateri === 'Semua' ? 'selected' : ''}>Semua Topik</option>
+                        ${topikOpts}
+                    </select>
+                </div>
             </div>
             <div id="materi_list"></div>`;
         updateMateriList();
@@ -300,16 +323,14 @@ function materi(id) {
     }
 
     document.querySelector('main').style.background = 'var(--surface)';
-    const textOnly = (new DOMParser().parseFromString(m.isi || '', 'text/html').body.textContent || '').trim();
-    const wordCount = textOnly ? textOnly.split(/\s+/).length : 0;
-    const menitBaca = Math.max(1, Math.ceil(wordCount / 180));
+    const waktuBacaText = typeof hitungWaktuBaca === 'function' ? hitungWaktuBaca(m.isi) : '1 menit baca';
     const legacyVid = m.video && !(m.isi || '').includes(m.video) ? yt(m.video) : '';
     const coverUrl = m.gambar ? String(m.gambar).trim() : '';
     const coverHtml = coverUrl
         ? `<img src="${esc(coverUrl)}" alt="${esc(m.judul)}" style="width:100%;max-height:340px;object-fit:cover;border-radius:12px;margin:0 0 22px;display:block">`
         : '';
 
-    const linkedQuiz = m.quizId ? (D.quiz || []).find(q => q.id === m.quizId) : null;
+    const linkedQuiz = m.quizId ? (D.quiz || []).find(q => q.id === m.quizId && isPublishedItem(q)) : null;
     let quizEmbedHtml = '';
     if (linkedQuiz) {
         const isNative = linkedQuiz.tipe === 'native';
@@ -349,7 +370,7 @@ function materi(id) {
                 <div class="read-header">
                     <h1>${esc(m.judul)}</h1>
                     <div class="read-meta">
-                        <span>⏱ ${menitBaca} menit baca</span>
+                        <span>⏱ ${waktuBacaText}</span>
                     </div>
                 </div>
                 ${coverHtml}
@@ -365,11 +386,14 @@ function materi(id) {
 ------------------------- */
 function quiz(id) {
     const a = wrapMain();
-    const q = D.quiz.find(x => x.id === id && x.tipe === 'native');
+    const q = (D.quiz || []).find(x => x.id === id && x.tipe === 'native' && isPublishedItem(x));
 
     if (!q) {
         const topikOpts = (typeof TOPIK !== 'undefined' ? TOPIK : [])
             .map(t => `<option value="${esc(t)}" ${fTopikQuiz === t ? 'selected' : ''}>${esc(t)}</option>`)
+            .join('');
+        const kelasOpts = (typeof KELAS_LEVEL_LIST !== 'undefined' ? KELAS_LEVEL_LIST : [])
+            .map(k => `<option value="${esc(k.id)}" ${fKelasSiswa === k.id ? 'selected' : ''}>${esc(k.label)}</option>`)
             .join('');
 
         a.innerHTML = `
@@ -378,10 +402,15 @@ function quiz(id) {
                     ${ICON_SEARCH_SISWA}
                     <input type="text" class="crud-search-input" value="${esc(qQuiz)}" placeholder="Cari kuis..." oninput="qQuiz=this.value;updateQuizList()" />
                 </div>
-                <select onchange="fTopikQuiz=this.value;updateQuizList()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
-                    <option value="Semua" ${fTopikQuiz === 'Semua' ? 'selected' : ''}>Semua Topik</option>
-                    ${topikOpts}
-                </select>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <select onchange="setKelasSiswaFilter(this.value,'quiz')" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
+                        ${kelasOpts}
+                    </select>
+                    <select onchange="fTopikQuiz=this.value;updateQuizList()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);cursor:pointer">
+                        <option value="Semua" ${fTopikQuiz === 'Semua' ? 'selected' : ''}>Semua Topik</option>
+                        ${topikOpts}
+                    </select>
+                </div>
             </div>
             <div id="quiz_list"></div>`;
         updateQuizList();

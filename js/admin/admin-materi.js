@@ -1,19 +1,7 @@
 /* Modul Materi Pembelajaran dengan Quill.js Rich Text Editor */
 let quillMateri = null;
-let livePreviewMode = "mobile";
 let filterTopikMateri = "Semua";
-
-function setLivePreviewMode(mode) {
-  livePreviewMode = mode;
-  const stage = document.getElementById("live_preview_stage");
-  if (stage) {
-    stage.className = `live-preview-stage ${mode}`;
-  }
-  const btnM = document.getElementById("btn_live_mobile");
-  const btnD = document.getElementById("btn_live_desktop");
-  if (btnM) btnM.classList.toggle("active", mode === "mobile");
-  if (btnD) btnD.classList.toggle("active", mode === "desktop");
-}
+let filterKelasMateri = "semua";
 
 function updateLivePreview() {
   const judulInput = document.getElementById("j");
@@ -38,10 +26,8 @@ function updateLivePreview() {
     html = quillMateri.root.innerHTML;
   }
   const textOnly = (new DOMParser().parseFromString(html || "", "text/html").body.textContent || "").trim();
-  const words = textOnly ? textOnly.split(/\s+/).filter(Boolean).length : 0;
-  const menit = Math.max(1, Math.ceil(words / 180));
   if (prevWaktu) {
-    prevWaktu.textContent = `⏱ ${menit} menit baca`;
+    prevWaktu.textContent = `⏱ ${hitungWaktuBaca(html)}`;
   }
 
   const hasMedia = quillMateri?.root.querySelector("img, iframe");
@@ -89,11 +75,35 @@ function handleGambarUpload(input) {
     const inp = document.getElementById("gambar_sampul");
     if (inp) {
       inp.value = e.target.result;
+      if (typeof refreshSampulUI === "function") refreshSampulUI();
       if (typeof updateLivePreview === "function") updateLivePreview();
       if (typeof toast === "function") toast("Gambar berhasil dimuat");
     }
   };
   reader.readAsDataURL(file);
+}
+
+function refreshSampulUI() {
+  const inp = document.getElementById("gambar_sampul");
+  const chip = document.getElementById("sampul_chip");
+  const chipImg = document.getElementById("sampul_chip_img");
+  const btnDel = document.getElementById("btn_hapus_sampul");
+  if (!inp) return;
+  const val = (inp.value || "").trim();
+  const isData = val.startsWith("data:");
+  if (chip) chip.style.display = isData ? "inline-flex" : "none";
+  if (chipImg && isData) chipImg.src = val;
+  inp.style.display = isData ? "none" : "block";
+  if (btnDel) btnDel.style.display = val ? "inline-flex" : "none";
+}
+
+function hapusGambarSampul() {
+  const inp = document.getElementById("gambar_sampul");
+  const f = document.getElementById("file_gambar_sampul");
+  if (inp) inp.value = "";
+  if (f) f.value = "";
+  refreshSampulUI();
+  updateLivePreview();
 }
 
 function getTopikVisual(topik) {
@@ -130,26 +140,31 @@ function pMateri() {
     quillMateri = null;
     const allList = [...(D.materi || [])].reverse();
     const list = allList.filter(
-      (x) => filterTopikMateri === "Semua" || normalizeTopik(x.topik) === filterTopikMateri,
+      (x) =>
+        (filterTopikMateri === "Semua" || normalizeTopik(x.topik) === filterTopikMateri) &&
+        (filterKelasMateri === "semua" || normalizeKelasLevel(x.kelas) === filterKelasMateri),
     );
     const items = list
       .map((x) => {
         const topikKey = normalizeTopik(x.topik);
         const topikLabel = TOPIK_MAP[topikKey] || "Umum";
         const vis = getTopikVisual(topikKey);
+        const isPub = x.published !== false;
         const thumb = x.gambar
           ? `<img src="${esc(x.gambar)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
           : vis.svg;
         return `
-      <div class="crud-card">
+      <div class="crud-card" style="${isPub ? "" : "opacity:0.82"}">
         <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
           <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0" title="${esc(topikLabel)}">${thumb}</div>
           <div class="crud-card-left">
             <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
-            <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
-              <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${vis.bg};color:${vis.color}">${esc(topikLabel)}</span>
-              <span>${hitungWaktuBaca(x.isi)}</span>
-              ${x.quizId && (D.quiz || []).some((q) => q.id === x.quizId) ? `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:#ecfeff;color:#0e7490">📝 Ada kuis</span>` : ""}
+            <div class="crud-card-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:12.5px">
+              <button type="button" onclick="toggleMateriPublish('${x.id}')" title="Klik untuk ubah status tampil" style="border:1px solid ${isPub ? "#bbf7d0" : "#fde68a"};cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font:inherit;font-size:11.5px;font-weight:700;background:${isPub ? "#f0fdf4" : "#fffbeb"};color:${isPub ? "#15803d" : "#b45309"}">${isPub ? "● Tampil" : "○ Disembunyikan"}</button>
+              <span style="color:var(--text-muted);font-weight:600">· ${esc(topikLabel)}</span>
+              ${normalizeKelasLevel(x.kelas) !== "semua" ? `<span style="color:var(--text-muted)">· ${esc(formatKelasLevelLabel(x.kelas))}</span>` : ""}
+              <span style="color:var(--text-muted)">· ${hitungWaktuBaca(x.isi)}</span>
+              ${x.quizId && (D.quiz || []).some((q) => q.id === x.quizId) ? `<span style="color:var(--text-muted)">· Ada kuis</span>` : ""}
             </div>
           </div>
         </div>
@@ -179,6 +194,9 @@ function pMateri() {
             <option value="Semua" ${filterTopikMateri === "Semua" ? "selected" : ""}>Semua Topik</option>
             ${TOPIK_LIST.map((t) => `<option value="${esc(t.id)}" ${filterTopikMateri === t.id ? "selected" : ""}>${esc(t.label)}</option>`).join("")}
           </select>
+          <select onchange="filterKelasMateri=this.value;draw()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;cursor:pointer">
+            ${KELAS_LEVEL_LIST.map((k) => `<option value="${esc(k.id)}" ${filterKelasMateri === k.id ? "selected" : ""}>${esc(k.label)}</option>`).join("")}
+          </select>
         </div>
         <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
       </div>
@@ -189,7 +207,7 @@ function pMateri() {
   }
 
   const m = edit === "new"
-    ? { judul: "", topik: filterTopikMateri !== "Semua" ? filterTopikMateri : "umum", gambar: "", quizId: "", isi: "" }
+    ? { judul: "", topik: filterTopikMateri !== "Semua" ? filterTopikMateri : "umum", kelas: filterKelasMateri !== "semua" ? filterKelasMateri : "semua", gambar: "", quizId: "", isi: "" }
     : (D.materi.find((x) => x.id === edit) || {
         judul: "",
         topik: "umum",
@@ -206,6 +224,7 @@ function pMateri() {
     .join("");
 
   const curTopik = normalizeTopik(m.topik);
+  const curKelas = normalizeKelasLevel(m.kelas);
 
   const crumbs = [
     { label: "Materi", onClick: "edit=null;quillMateri=null;draw()" },
@@ -227,49 +246,53 @@ function pMateri() {
           <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
             <h3 style="margin:0">${m.id ? "Ubah" : "Tambah"} Materi</h3>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:14px">
+
+          <div style="margin-bottom:12px">
+            <label style="margin-top:0">Judul Materi</label>
+            <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hakikat Fisika" oninput="updateLivePreview()">
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;margin-bottom:12px">
             <div>
-              <label>Judul Materi</label>
-              <input id="j" value="${esc(m.judul)}" placeholder="Contoh: Hakikat Fisika dan Pengukuran" oninput="updateLivePreview()">
-            </div>
-            <div>
-              <label>Topik</label>
+              <label style="margin-top:0">Topik</label>
               <select id="topik" onchange="updateLivePreview()">
                 ${TOPIK_LIST.map((t) => `<option value="${esc(t.id)}" ${curTopik === t.id ? "selected" : ""}>${esc(t.label)}</option>`).join("")}
               </select>
             </div>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span>Gambar Sampul</span>
-              <span style="font-size:12px;color:var(--text-muted);font-weight:400">opsional, maks 500 KB</span>
-            </label>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input id="gambar_sampul" value="${esc(m.gambar || "")}" placeholder="URL atau path gambar sampul (opsional)..." style="flex:1;min-width:200px" oninput="updateLivePreview()">
-              <label class="btn sm ghost" style="margin:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:9px 14px">
-                📁 Unggah File
-                <input type="file" id="file_gambar_sampul" accept="image/*" hidden onchange="handleGambarUpload(this)">
-              </label>
-              ${m.gambar ? `<button type="button" class="btn sm ghost" onclick="$('#gambar_sampul').value='';updateLivePreview();" title="Hapus gambar sampul" style="color:var(--danger)">Hapus</button>` : ""}
+            <div>
+              <label style="margin-top:0">Untuk Kelas</label>
+              <select id="kelas_materi">
+                ${KELAS_LEVEL_LIST.map((k) => `<option value="${esc(k.id)}" ${curKelas === k.id ? "selected" : ""}>${esc(k.label)}</option>`).join("")}
+              </select>
+            </div>
+            <div>
+              <label style="margin-top:0">Kuis Terkait</label>
+              <select id="quiz_terkait" onchange="updateLivePreview()">
+                <option value="">Tidak ada</option>
+                ${quizOpts}
+              </select>
             </div>
           </div>
+
           <div style="margin-bottom:14px">
-            <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span>Sematan Kuis Terkait</span>
-              <span style="font-size:12px;color:var(--text-muted);font-weight:400">opsional, tampil di bawah materi</span>
-            </label>
-            <select id="quiz_terkait" onchange="updateLivePreview()">
-              <option value="">-- Tidak ada kuis terkait --</option>
-              ${quizOpts}
-            </select>
+            <label style="margin-top:0">Gambar Sampul</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div id="sampul_chip" style="display:${String(m.gambar || "").startsWith("data:") ? "inline-flex" : "none"};align-items:center;gap:8px;flex:1;min-width:180px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:600;color:var(--text)">
+                <img id="sampul_chip_img" src="${String(m.gambar || "").startsWith("data:") ? esc(m.gambar) : ""}" alt="" style="width:28px;height:28px;border-radius:6px;object-fit:cover">
+                <span>✓ Sampul terpasang</span>
+              </div>
+              <input id="gambar_sampul" value="${esc(m.gambar || "")}" placeholder="Path (aset/...) atau URL gambar sampul..." style="flex:1;min-width:180px;display:${String(m.gambar || "").startsWith("data:") ? "none" : "block"}" oninput="refreshSampulUI();updateLivePreview()">
+              <label class="btn sm ghost" style="margin:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:9px 12px">
+                📁 Unggah
+                <input type="file" id="file_gambar_sampul" accept="image/*" hidden onchange="handleGambarUpload(this)">
+              </label>
+              <button type="button" id="btn_hapus_sampul" class="btn sm ghost" onclick="hapusGambarSampul()" title="Hapus gambar sampul" style="color:var(--danger);display:${m.gambar ? "inline-flex" : "none"}">Hapus</button>
+            </div>
           </div>
-          <label style="margin-top:14px">Isi Materi</label>
-          <div class="quill-wrapper" style="margin-bottom:16px">
+
+          <label style="margin-top:4px">Isi Materi</label>
+          <div class="quill-wrapper" style="margin-bottom:0">
             <div id="quill_editor"></div>
-          </div>
-          <div class="row" style="margin-top:20px;gap:10px">
-            <button class="btn" onclick="sM('${m.id || ""}')">Simpan Materi</button>
-            <button class="btn ghost" onclick="edit=null;quillMateri=null;draw()">Batal</button>
           </div>
         </div>
       </div>
@@ -277,13 +300,7 @@ function pMateri() {
       <!-- Kolom Kanan: Live Preview Frame Siswa -->
       <div class="materi-preview-pane">
         <div class="preview-card-sticky">
-          <div class="preview-header-bar" style="justify-content:flex-end">
-            <div class="preview-toggle-group">
-              <button type="button" class="preview-toggle ${livePreviewMode === "mobile" ? "active" : ""}" id="btn_live_mobile" onclick="setLivePreviewMode('mobile')">📱 Mode HP</button>
-              <button type="button" class="preview-toggle ${livePreviewMode === "desktop" ? "active" : ""}" id="btn_live_desktop" onclick="setLivePreviewMode('desktop')">💻 Mode Laptop</button>
-            </div>
-          </div>
-          <div class="live-preview-stage ${livePreviewMode}" id="live_preview_stage">
+          <div class="live-preview-stage mobile" id="live_preview_stage">
             <div class="live-preview-screen">
               <div class="device-notch"></div>
               <div class="device-screen-scroll">
@@ -302,6 +319,19 @@ function pMateri() {
                 </article>
               </div>
               <div class="device-home-bar"></div>
+            </div>
+          </div>
+          <div class="panel" style="margin:14px 0 0;padding:14px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:10px">
+              <span style="font-size:13px;font-weight:700;color:var(--text)">Tampilkan ke Siswa</span>
+              <label class="qe-switch">
+                <input type="checkbox" id="materi_published" ${m.published !== false ? "checked" : ""}>
+                <span class="qe-slider"></span>
+              </label>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button type="button" class="qe-btn-save" style="width:100%;text-align:center" onclick="sM('${m.id || ""}')">Simpan Materi</button>
+              <button type="button" class="btn ghost" style="width:100%;text-align:center" onclick="edit=null;quillMateri=null;draw()">Batal</button>
             </div>
           </div>
         </div>
@@ -446,7 +476,17 @@ function afterDraw() {
   }
 }
 
-function sM(id) {
+function toggleMateriPublish(id) {
+  const m = (D.materi || []).find((x) => x.id === id);
+  if (!m) return;
+  m.published = m.published === false;
+  m.updatedAt = Date.now();
+  save();
+  draw();
+  toast(m.published ? "Materi ditampilkan" : "Materi disembunyikan");
+}
+
+function sM(id, publishState) {
   let isiContent = "";
   if (quillMateri) {
     const textLen = quillMateri.getText().trim().length;
@@ -469,11 +509,13 @@ function sM(id) {
     id: id || Store.uid("m"),
     judul: $("#j").value.trim(),
     topik: topikNormalized,
+    kelas: normalizeKelasLevel($("#kelas_materi")?.value || existing?.kelas || "semua"),
     gambar: gambarVal,
     quizId: ($("#quiz_terkait")?.value || "").trim(),
     kategori: existing?.kategori || "Umum",
     ringkasan: cuplikan(isiContent),
     video: existing?.video || "",
+    published: $("#materi_published") ? $("#materi_published").checked : (typeof publishState === "boolean" ? publishState : (existing ? existing.published !== false : true)),
     isi: isiContent,
     createdAt: existing?.createdAt || now,
     updatedAt: now,

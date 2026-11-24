@@ -50,7 +50,7 @@ function confirmLeaveUnsaved() {
 }
 
 function switchTab(nextTab) {
-  if (nextTab === tab && !edit && !(typeof curMasterKls !== "undefined" && curMasterKls)) {
+  if (nextTab === tab && !edit && !(typeof curMasterKls !== "undefined" && curMasterKls) && !(typeof curSiteView !== "undefined" && curSiteView)) {
     closeSidebar();
     return;
   }
@@ -67,6 +67,7 @@ function switchTab(nextTab) {
   if (typeof previewQuizState !== "undefined") previewQuizState = null;
   if (typeof showQuizSettings !== "undefined") showQuizSettings = false;
   if (typeof curNilaiQuizId !== "undefined") curNilaiQuizId = null;
+  if (typeof curSiteView !== "undefined") curSiteView = null;
   if (nextTab === "nilai" && typeof nilaiLoaded !== "undefined") nilaiLoaded = false;
 
   draw();
@@ -298,16 +299,6 @@ function renderBreadcrumb(items = []) {
     })
     .join("");
   return `<nav class="breadcrumb" aria-label="Breadcrumb">${listHtml}</nav>`;
-}
-
-function hitungWaktuBaca(htmlOrText) {
-  if (!htmlOrText) return "1 menit baca";
-  const div = document.createElement("div");
-  div.innerHTML = htmlOrText;
-  const text = (div.textContent || div.innerText || "").trim();
-  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
-  const menit = Math.max(1, Math.ceil(words / 180));
-  return `${menit} menit baca`;
 }
 
 function uiPanel({ headerLeft, headerRight = "", content = "", emptyText = "Belum ada data." }) {

@@ -1,6 +1,7 @@
 /* Modul Kuis / Latihan Soal - Two Column Quiz Editor */
 let Q;
 let filterTopikQuiz = "Semua";
+let filterKelasQuiz = "semua";
 let showQuizSettings = false;
 let activeSoalIdx = 0;
 let previewQuizState = null;
@@ -47,7 +48,9 @@ function pQuiz() {
     activeSoalIdx = 0;
     const allList = [...(D.quiz || [])].reverse();
     const list = allList.filter(
-      (x) => filterTopikQuiz === "Semua" || (x.topik || "Semua") === filterTopikQuiz,
+      (x) =>
+        (filterTopikQuiz === "Semua" || (x.topik || "Semua") === filterTopikQuiz) &&
+        (filterKelasQuiz === "semua" || normalizeKelasLevel(x.kelas) === filterKelasQuiz),
     );
     const items = list
       .map((x) => {
@@ -61,16 +64,19 @@ function pQuiz() {
         const thumbHtml = linkedMateri
           ? `<img src="${esc(String(linkedMateri.gambar).trim())}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
           : iconVis.svg;
+        const isPub = x.published !== false;
         const tipeText = x.tipe === "native" ? `${TIPE.native} · ${x.soal.length} soal` : extVis.label;
         return `
-      <div class="crud-card">
+      <div class="crud-card" style="${isPub ? "" : "opacity:0.82"}">
         <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
           <div style="width:44px;height:44px;border-radius:12px;background:${iconVis.bg};color:${iconVis.color};display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0" title="${esc(extVis ? extVis.label : topikLabel)}">${thumbHtml}</div>
           <div class="crud-card-left">
             <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
-            <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
-              <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${topikVis.bg};color:${topikVis.color}">${esc(topikLabel)}</span>
-              <span>${esc(tipeText)}</span>
+            <div class="crud-card-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:12.5px">
+              <button type="button" onclick="toggleQuizPublish('${x.id}')" title="Klik untuk ubah status tampil" style="border:1px solid ${isPub ? "#bbf7d0" : "#fde68a"};cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font:inherit;font-size:11.5px;font-weight:700;background:${isPub ? "#f0fdf4" : "#fffbeb"};color:${isPub ? "#15803d" : "#b45309"}">${isPub ? "● Tampil" : "○ Disembunyikan"}</button>
+              <span style="color:var(--text-muted);font-weight:600">· ${esc(topikLabel)}</span>
+              ${normalizeKelasLevel(x.kelas) !== "semua" ? `<span style="color:var(--text-muted)">· ${esc(formatKelasLevelLabel(x.kelas))}</span>` : ""}
+              <span style="color:var(--text-muted)">· ${esc(tipeText)}</span>
             </div>
           </div>
         </div>
@@ -100,6 +106,9 @@ function pQuiz() {
             <option value="Semua" ${filterTopikQuiz === "Semua" ? "selected" : ""}>Semua Topik</option>
             ${TOPIK.map((t) => `<option value="${esc(t)}" ${filterTopikQuiz === t ? "selected" : ""}>${esc(t)}</option>`).join("")}
           </select>
+          <select onchange="filterKelasQuiz=this.value;draw()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;cursor:pointer">
+            ${KELAS_LEVEL_LIST.map((k) => `<option value="${esc(k.id)}" ${filterKelasQuiz === k.id ? "selected" : ""}>${esc(k.label)}</option>`).join("")}
+          </select>
         </div>
         <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
       </div>
@@ -116,6 +125,7 @@ function pQuiz() {
         judul: "",
         deskripsi: "",
         topik: filterTopikQuiz !== "Semua" ? filterTopikQuiz : "Umum",
+        kelas: filterKelasQuiz !== "semua" ? filterKelasQuiz : "semua",
         tipe: "native",
         link: "",
         soal: [
@@ -130,6 +140,7 @@ function pQuiz() {
     );
     Q._for = edit;
     Q.topik = Q.topik || (filterTopikQuiz !== "Semua" ? filterTopikQuiz : "Umum");
+    Q.kelas = typeof normalizeKelasLevel === "function" ? normalizeKelasLevel(Q.kelas) : (Q.kelas || "semua");
     Q.deskripsi = Q.deskripsi || "";
     if (Q.durasi === undefined) Q.durasi = 20;
     if (Q.acakSoal === undefined) Q.acakSoal = false;
@@ -198,12 +209,18 @@ function pQuiz() {
             <input id="j" value="${esc(Q.judul)}" placeholder="Judul kuis">
           </div>
           <div>
-            <label style="margin-top:0">Topik</label>
-            <div style="display:flex;gap:10px;align-items:center">
-              <select id="topik" onchange="Q.topik=this.value" style="flex:1">
+            <label style="margin-top:0">Topik &amp; Kelas</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="topik" onchange="Q.topik=this.value" style="flex:1;min-width:140px">
                 ${TOPIK.map(
                   (t) =>
                     `<option value="${esc(t)}" ${(Q.topik || "Umum") === t ? "selected" : ""}>${esc(t)}</option>`,
+                ).join("")}
+              </select>
+              <select id="kelas_quiz" onchange="Q.kelas=this.value" style="width:auto;min-width:125px">
+                ${KELAS_LEVEL_LIST.map(
+                  (k) =>
+                    `<option value="${esc(k.id)}" ${normalizeKelasLevel(Q.kelas) === k.id ? "selected" : ""}>${esc(k.label)}</option>`,
                 ).join("")}
               </select>
               <button type="button" class="qe-btn-settings" onclick="sync();showQuizSettings=true;draw()">Setelan kuis</button>
@@ -247,6 +264,13 @@ function pQuiz() {
             : `<h4 class="qe-nav-title" style="margin-bottom:4px">Aksi kuis</h4>`
         }
         <div class="absen-sidebar-actions">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:700;color:var(--text)">Tampilkan ke Siswa</span>
+            <label class="qe-switch">
+              <input type="checkbox" id="quiz_published" ${Q.published !== false ? "checked" : ""} onchange="Q.published=this.checked">
+              <span class="qe-slider"></span>
+            </label>
+          </div>
           <button type="button" class="qe-btn-save" style="width:100%;text-align:center" onclick="sQ()">Simpan kuis</button>
           <button type="button" class="qe-btn-outline" style="width:100%;text-align:center" onclick="pratinjauKuis()">Pratinjau</button>
           <button type="button" class="btn ghost" style="width:100%;text-align:center" onclick="batalEditKuis()">Batal</button>
@@ -285,16 +309,6 @@ function renderQuizSettingsModal() {
 
         <div class="qe-modal-body">
           <div style="margin-bottom:14px">
-            <label style="margin-top:0">Topik</label>
-            <select id="set_topik">
-              ${TOPIK.map(
-                (t) =>
-                  `<option value="${esc(t)}" ${(Q.topik || "Umum") === t ? "selected" : ""}>${esc(t)}</option>`,
-              ).join("")}
-            </select>
-          </div>
-
-          <div style="margin-bottom:14px">
             <label style="margin-top:0">Jenis kuis</label>
             <select id="set_tipe" onchange="sync();draw()">
               ${Object.entries(TIPE)
@@ -316,7 +330,7 @@ function renderQuizSettingsModal() {
           }
 
           <div style="margin-bottom:16px">
-            <label style="margin-top:0">Durasi</label>
+            <label style="margin-top:0">Durasi pengerjaan</label>
             <select id="set_durasi">
               ${durasiOptions
                 .map(
@@ -396,6 +410,8 @@ function renderSoalCard(s, n) {
 
 function tambahSoalBaru() {
   sync();
+  if (typeof publishState === "boolean") Q.published = publishState;
+  else if (Q.published === undefined) Q.published = true;
   Q.soal.push({
     q: "",
     o: ["", "", "", ""],
@@ -692,8 +708,9 @@ function sync() {
   if (!Q) return;
   if ($("#j")) Q.judul = $("#j").value;
   if ($("#topik")) Q.topik = $("#topik").value;
+  if ($("#kelas_quiz")) Q.kelas = normalizeKelasLevel($("#kelas_quiz").value);
+  if ($("#quiz_published")) Q.published = $("#quiz_published").checked;
   if ($("#desc")) Q.deskripsi = $("#desc").value;
-  if ($("#set_topik")) Q.topik = $("#set_topik").value;
   if ($("#set_tipe")) Q.tipe = $("#set_tipe").value;
   if ($("#set_link")) Q.link = $("#set_link").value;
   if ($("#set_durasi")) Q.durasi = +$("#set_durasi").value;
@@ -726,7 +743,16 @@ function batalEditKuis() {
   draw();
 }
 
-function sQ() {
+function toggleQuizPublish(id) {
+  const q = (D.quiz || []).find((x) => x.id === id);
+  if (!q) return;
+  q.published = q.published === false;
+  save();
+  draw();
+  toast(q.published ? "Kuis ditampilkan" : "Kuis disembunyikan");
+}
+
+function sQ(publishState) {
   sync();
   if (!Q.judul.trim()) return toast("Judul kuis wajib diisi");
   if (Q.tipe !== "native" && !/^https?:\/\//.test(Q.link))
@@ -808,6 +834,20 @@ function openNilaiQuiz(qid) {
   nilaiFocusStudent = null;
   nilaiViewMode = "best";
   draw();
+}
+
+async function hapusSemuaNilaiSiswa(quizId, kelas, nama, attempts) {
+  const klsLabel = /^kelas\b/i.test(kelas) ? kelas : `Kelas ${kelas}`;
+  if (!confirm(`Hapus semua ${attempts} percobaan nilai milik "${nama}" (${klsLabel}) pada kuis ini?`)) return;
+  const norm = (v) => String(v || "").trim().toLowerCase();
+  nilaiRows = (nilaiRows || []).filter(
+    (x) => !(x.quiz_id === quizId && norm(x.kelas) === norm(kelas) && norm(x.nama) === norm(nama)),
+  );
+  draw();
+  if (typeof NilaiDB !== "undefined" && typeof NilaiDB.removeByStudent === "function") {
+    await NilaiDB.removeByStudent(quizId, kelas, nama);
+  }
+  toast(`Semua nilai ${nama} dihapus`);
 }
 
 function lihatPercobaanSiswa(nama) {
@@ -940,9 +980,9 @@ function pNilai() {
               <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">${thumbHtml}</div>
               <div class="crud-card-left">
                 <h3 class="crud-card-title">${esc(q.judul)}</h3>
-                <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
-                  <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${vis.bg};color:${vis.color}">${esc(q.topik)}</span>
-                  <span>${rows.length ? `${uniqueStudents} siswa · ${rows.length} percobaan` : "Belum ada nilai masuk"}</span>
+                <div class="crud-card-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:12.5px;color:var(--text-muted)">
+                  <span style="font-weight:600">${esc(q.topik)}</span>
+                  <span>· ${rows.length ? `${uniqueStudents} siswa · ${rows.length} percobaan` : "Belum ada nilai masuk"}</span>
                 </div>
               </div>
             </div>
@@ -998,10 +1038,15 @@ function pNilai() {
       const searchStr = esc(`${r.nama} ${klsLabel}`).toLowerCase();
       const hiddenStyle = qLower && !searchStr.includes(qLower) ? "display:none" : "";
       const safeNama = esc(r.nama).replace(/'/g, "\\'");
+      const safeKls = esc(r.kelas).replace(/'/g, "\\'");
+      const safeQid = esc(r.quiz_id || curNilaiQuizId).replace(/'/g, "\\'");
 
       const aksiCell =
         nilaiViewMode === "best" && r._attempts > 1
-          ? `<button type="button" class="btn sm ghost" style="padding:4px 10px;font-size:12px" onclick="lihatPercobaanSiswa('${safeNama}')" title="Lihat semua percobaan siswa ini">${r._attempts}x coba</button>`
+          ? `<div style="display:inline-flex;align-items:center;gap:6px">
+              <button type="button" class="btn sm ghost" style="padding:4px 10px;font-size:12px" onclick="lihatPercobaanSiswa('${safeNama}')" title="Lihat semua percobaan siswa ini">${r._attempts}x coba</button>
+              <button type="button" class="crud-btn-icon del" style="width:32px;height:32px" onclick="hapusSemuaNilaiSiswa('${safeQid}','${safeKls}','${safeNama}',${r._attempts})" title="Hapus semua percobaan siswa ini">${ICON_TRASH}</button>
+            </div>`
           : `<button type="button" class="crud-btn-icon del" style="width:32px;height:32px" onclick="hapusNilai('${r.id}')" title="Hapus catatan nilai">${ICON_TRASH}</button>`;
 
       return `

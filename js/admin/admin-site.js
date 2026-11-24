@@ -1,108 +1,196 @@
-/* Modul Pengaturan Website & Cadangan Data */
-function bukaCadanganData() {
+/* Modul Pengaturan Website, Topik & Cadangan Data */
+let curSiteView = null; // null (menu kartu) | 'website' | 'topik' | 'data'
+let draftTopikList = null;
+
+function openSiteView(view) {
   if (typeof confirmLeaveUnsaved === "function" && !confirmLeaveUnsaved()) return;
   if (typeof isDirty !== "undefined") isDirty = false;
-  tab = "data";
+  tab = "site";
+  curSiteView = view || null;
+  draftTopikList = curSiteView === "topik" ? TOPIK_LIST.map((x) => ({ ...x })) : null;
   draw();
 }
 
-function pSite() {
-  const s = D.site;
-  return `
-    ${renderBreadcrumb([{ label: "Pengaturan" }])}
-    <div class="panel">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h3 style="margin:0">Pengaturan Website</h3>
-        <button type="button" class="btn sm ghost" onclick="bukaCadanganData()">💾 Cadangan Data →</button>
-      </div>
-      ${[
-        ["nama", "Nama Website"],
-        ["tagline", "Judul Besar Halaman Beranda"],
-        ["deskripsi", "Deskripsi Beranda"],
-        ["footer", "Teks Footer"],
-        ["pin", "Kata Sandi Masuk Guru"],
-      ]
-        .map(
-          ([k, l]) =>
-            `<label>${l}</label><input id="s_${k}" value="${esc(s[k] || "")}">`,
-        )
-        .join("")}
-      <div class="row" style="margin-top:20px;gap:8px">
-        <button class="btn" onclick="['nama','tagline','deskripsi','footer','pin'].forEach(k=>D.site[k]=$('#s_'+k).value.trim());save()">Simpan</button>
-        <button class="btn ghost" onclick="draw()">Batal</button>
-      </div>
-    </div>
+function bukaCadanganData() {
+  openSiteView("data");
+}
 
-    <div class="panel" style="margin-top:18px">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h3 style="margin:0">Kelola Topik Materi &amp; Kuis</h3>
-      </div>
-      <p class="sub" style="margin-bottom:14px">Topik yang ditambahkan di sini otomatis muncul di dropdown Materi, Kuis, dan halaman Siswa.</p>
-      <div class="row" style="gap:8px;margin-bottom:14px">
-        <input id="topik_baru" placeholder="Contoh: Kinematika, Dinamika Gerak, Gelombang..." style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter'){event.preventDefault();tambahTopikBaru();}">
-        <button type="button" class="btn" onclick="tambahTopikBaru()">+ Tambah Topik</button>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        ${TOPIK_LIST.map((t) => `
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
-            <span style="font-weight:600;color:var(--text)">${esc(t.label)}</span>
-            ${t.id === "umum"
-              ? `<span style="font-size:12px;color:var(--text-muted);font-weight:600">Bawaan</span>`
-              : `<button type="button" class="btn sm ghost" style="color:var(--danger)" onclick="hapusTopik('${esc(t.id)}')">Hapus</button>`
-            }
+function pSite() {
+  const s = D.site || {};
+
+  /* LEVEL 1: Menu Kartu Pengaturan */
+  if (!curSiteView) {
+    const topikCount = Array.isArray(TOPIK_LIST) ? TOPIK_LIST.length : 0;
+    return `
+      ${renderBreadcrumb([{ label: "Pengaturan" }])}
+      <div class="crud-card-list">
+        <div class="crud-card" style="cursor:pointer" onclick="openSiteView('website')">
+          <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+            <div style="width:44px;height:44px;border-radius:12px;background:#e0f2fe;color:#0284c7;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🌐</div>
+            <div class="crud-card-left">
+              <h3 class="crud-card-title">Pengaturan Website</h3>
+              <div class="crud-card-sub" style="margin-top:2px">${esc(s.nama || "Fahsika")} · Judul beranda, footer, dan kata sandi guru</div>
+            </div>
           </div>
-        `).join("")}
+          <div class="crud-actions">
+            <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openSiteView('website')">Atur →</button>
+          </div>
+        </div>
+
+        <div class="crud-card" style="cursor:pointer" onclick="openSiteView('topik')">
+          <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+            <div style="width:44px;height:44px;border-radius:12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🏷️</div>
+            <div class="crud-card-left">
+              <h3 class="crud-card-title">Kelola Topik</h3>
+              <div class="crud-card-sub" style="margin-top:2px">${topikCount} topik terdaftar untuk Materi &amp; Kuis</div>
+            </div>
+          </div>
+          <div class="crud-actions">
+            <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openSiteView('topik')">Kelola →</button>
+          </div>
+        </div>
+
+        <div class="crud-card" style="cursor:pointer" onclick="openSiteView('data')">
+          <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+            <div style="width:44px;height:44px;border-radius:12px;background:#f3e8ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💾</div>
+            <div class="crud-card-left">
+              <h3 class="crud-card-title">Cadangan Data</h3>
+              <div class="crud-card-sub" style="margin-top:2px">Unduh arsip cadangan (.json) atau pulihkan dari file</div>
+            </div>
+          </div>
+          <div class="crud-actions">
+            <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openSiteView('data')">Buka →</button>
+          </div>
+        </div>
       </div>
-    </div>`;
+    `;
+  }
+
+  /* LEVEL 2A: Pengaturan Website */
+  if (curSiteView === "website") {
+    return `
+      ${renderBreadcrumb([
+        { label: "Pengaturan", onClick: "openSiteView(null)" },
+        { label: "Pengaturan Website" },
+      ])}
+      <div class="panel">
+        <h3 style="margin:0 0 16px">Pengaturan Website</h3>
+        ${[
+          ["nama", "Nama Website"],
+          ["tagline", "Judul Besar Halaman Beranda"],
+          ["deskripsi", "Deskripsi Beranda"],
+          ["footer", "Teks Footer"],
+          ["pin", "Kata Sandi Masuk Guru"],
+        ]
+          .map(
+            ([k, l]) =>
+              `<label>${l}</label><input id="s_${k}" value="${esc(s[k] || "")}">`,
+          )
+          .join("")}
+        <div class="row" style="margin-top:20px;gap:8px">
+          <button class="btn" onclick="['nama','tagline','deskripsi','footer','pin'].forEach(k=>D.site[k]=$('#s_'+k).value.trim());save();curSiteView=null;draw()">Simpan</button>
+          <button class="btn ghost" onclick="openSiteView(null)">Batal</button>
+        </div>
+      </div>`;
+  }
+
+  /* LEVEL 2B: Kelola Topik */
+  if (curSiteView === "topik") {
+    const listTopik = Array.isArray(draftTopikList) ? draftTopikList : TOPIK_LIST;
+    return `
+      ${renderBreadcrumb([
+        { label: "Pengaturan", onClick: "openSiteView(null)" },
+        { label: "Kelola Topik" },
+      ])}
+      <div class="panel">
+        <h3 style="margin:0 0 8px">Kelola Topik Materi &amp; Kuis</h3>
+        <p class="sub" style="margin-bottom:14px">Topik yang ditambahkan di sini otomatis muncul di dropdown Materi, Kuis, dan halaman Siswa.</p>
+        <div class="row" style="gap:8px;margin-bottom:14px">
+          <input id="topik_baru" placeholder="Contoh: Kinematika, Dinamika Gerak, Gelombang..." style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter'){event.preventDefault();tambahTopikBaru();}">
+          <button type="button" class="btn" onclick="tambahTopikBaru()">+ Tambah Topik</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${listTopik.map((t) => `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+              <span style="font-weight:600;color:var(--text)">${esc(t.label)}</span>
+              ${t.id === "umum"
+                ? `<span style="font-size:12px;color:var(--text-muted);font-weight:600">Bawaan</span>`
+                : `<button type="button" class="btn sm ghost" style="color:var(--danger)" onclick="hapusTopik('${esc(t.id)}')">Hapus</button>`
+              }
+            </div>
+          `).join("")}
+        </div>
+        <div class="row" style="margin-top:20px;gap:8px">
+          <button type="button" class="btn" onclick="simpanTopik()">Simpan</button>
+          <button type="button" class="btn ghost" onclick="openSiteView(null)">Batal</button>
+        </div>
+      </div>`;
+  }
+
+  /* LEVEL 2C: Cadangan Data */
+  return pData();
 }
 
 function tambahTopikBaru() {
   const inp = $("#topik_baru");
   const label = (inp?.value || "").trim();
   if (!label) return toast("Nama topik belum diisi");
-  const list = Array.isArray(D.topik_list) && D.topik_list.length ? [...D.topik_list] : TOPIK_LIST.map((x) => ({ ...x }));
+  if (!Array.isArray(draftTopikList)) draftTopikList = TOPIK_LIST.map((x) => ({ ...x }));
   const id = slugifyTopik(label);
-  if (list.some((x) => x.id === id || x.label.toLowerCase() === label.toLowerCase())) {
+  if (draftTopikList.some((x) => x.id === id || x.label.toLowerCase() === label.toLowerCase())) {
     return toast("Topik tersebut sudah ada");
   }
-  const umumIdx = list.findIndex((x) => x.id === "umum");
-  if (umumIdx >= 0) list.splice(umumIdx, 0, { id, label });
-  else list.push({ id, label });
-  D.topik_list = syncTopikGlobals(list);
-  save();
+  const umumIdx = draftTopikList.findIndex((x) => x.id === "umum");
+  if (umumIdx >= 0) draftTopikList.splice(umumIdx, 0, { id, label });
+  else draftTopikList.push({ id, label });
+  if (typeof isDirty !== "undefined") isDirty = true;
   draw();
-  toast(`Topik "${label}" ditambahkan`);
 }
 
 function hapusTopik(id) {
   if (id === "umum") return;
-  const target = TOPIK_LIST.find((x) => x.id === id);
+  if (!Array.isArray(draftTopikList)) draftTopikList = TOPIK_LIST.map((x) => ({ ...x }));
+  const target = draftTopikList.find((x) => x.id === id);
   if (!target) return;
-  if (!confirm(`Hapus topik "${target.label}"? Materi/kuis dengan topik ini akan otomatis dialihkan ke "Umum".`)) return;
-  const list = (Array.isArray(D.topik_list) ? D.topik_list : TOPIK_LIST).filter((x) => x.id !== id);
-  D.topik_list = syncTopikGlobals(list);
-  (D.materi || []).forEach((m) => { if (m.topik === id) m.topik = "umum"; });
-  (D.quiz || []).forEach((q) => { if (q.topik === target.label) q.topik = "Umum"; });
+  draftTopikList = draftTopikList.filter((x) => x.id !== id);
+  if (typeof isDirty !== "undefined") isDirty = true;
+  draw();
+}
+
+function simpanTopik() {
+  const oldList = TOPIK_LIST.map((x) => ({ ...x }));
+  const nextList = syncTopikGlobals(Array.isArray(draftTopikList) ? draftTopikList : oldList);
+  const nextIds = new Set(nextList.map((x) => x.id));
+  const removed = oldList.filter((x) => !nextIds.has(x.id));
+  if (removed.length) {
+    const removedIds = new Set(removed.map((x) => x.id));
+    const removedLabels = new Set(removed.map((x) => x.label));
+    (D.materi || []).forEach((m) => { if (removedIds.has(m.topik)) m.topik = "umum"; });
+    (D.quiz || []).forEach((q) => { if (removedLabels.has(q.topik)) q.topik = "Umum"; });
+  }
+  D.topik_list = nextList;
+  if (typeof isDirty !== "undefined") isDirty = false;
+  draftTopikList = null;
+  curSiteView = null;
   save();
   draw();
-  toast(`Topik "${target.label}" dihapus`);
 }
 
 function pData() {
   return `
     ${renderBreadcrumb([
-      { label: "Pengaturan", onClick: "tab='site';draw()" },
+      { label: "Pengaturan", onClick: "openSiteView(null)" },
       { label: "Cadangan Data" },
     ])}
     <div class="panel">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h3 style="margin:0">Cadangan Data</h3>
-        <button type="button" class="btn sm ghost" onclick="tab='site';draw()">← Kembali ke Pengaturan</button>
-      </div>
+      <h3 style="margin:0 0 8px">Cadangan Data</h3>
       <p class="sub" style="margin-bottom:16px">Data tersimpan otomatis di database cloud. Unduh cadangan (.json) secara berkala sebagai salinan arsip di perangkat Anda, atau pulihkan dari file cadangan jika diperlukan.</p>
       <div class="row" style="gap:10px;flex-wrap:wrap">
         <button class="btn" onclick="exp()">Unduh Cadangan (.json)</button>
         <label class="btn ghost" style="margin:0;cursor:pointer">Pulihkan dari File<input type="file" accept=".json" hidden onchange="imp(this.files[0]);this.value=''"></label>
+      </div>
+      <div class="row" style="margin-top:20px;gap:8px">
+        <button type="button" class="btn ghost" onclick="openSiteView(null)">← Kembali</button>
       </div>
     </div>`;
 }

@@ -179,6 +179,25 @@ const NilaiDB = {
             console.warn('[NilaiDB] Delete cloud gagal:', e);
             return false;
         }
+    },
+
+    async removeByStudent(quizId, kelas, nama) {
+        const norm = v => String(v || '').trim().toLowerCase();
+        const local = this.getLocal().filter(x =>
+            !(x.quiz_id === quizId && norm(x.kelas) === norm(kelas) && norm(x.nama) === norm(nama))
+        );
+        this.saveLocal(local);
+        try {
+            await this.ensureTable();
+            await NeonDB.query(
+                `DELETE FROM quiz_results WHERE quiz_id = $1 AND LOWER(TRIM(kelas)) = LOWER(TRIM($2)) AND LOWER(TRIM(nama)) = LOWER(TRIM($3));`,
+                [quizId, String(kelas || ''), String(nama || '')]
+            );
+            return true;
+        } catch (e) {
+            console.warn('[NilaiDB] Delete student cloud gagal:', e);
+            return false;
+        }
     }
 };
 
@@ -233,6 +252,36 @@ function syncTopikGlobals(list) {
 
 syncTopikGlobals(DEFAULT_TOPIK_LIST);
 
+const KELAS_LEVEL_LIST = [
+    { id: 'semua', label: 'Semua Kelas' },
+    { id: 'X', label: 'Kelas X' },
+    { id: 'XI', label: 'Kelas XI' },
+    { id: 'XII', label: 'Kelas XII' }
+];
+
+function normalizeKelasLevel(v) {
+    const s = String(v || '').trim().toUpperCase();
+    if (s === 'X' || s === '10' || s === 'KELAS X') return 'X';
+    if (s === 'XI' || s === '11' || s === 'KELAS XI') return 'XI';
+    if (s === 'XII' || s === '12' || s === 'KELAS XII') return 'XII';
+    return 'semua';
+}
+
+function formatKelasLevelLabel(v) {
+    const k = normalizeKelasLevel(v);
+    if (k === 'X') return 'Kelas X';
+    if (k === 'XI') return 'Kelas XI';
+    if (k === 'XII') return 'Kelas XII';
+    return 'Semua Kelas';
+}
+
+function matchKelasFilter(itemKelas, selectedFilter) {
+    const f = normalizeKelasLevel(selectedFilter);
+    if (f === 'semua') return true;
+    const ik = normalizeKelasLevel(itemKelas);
+    return ik === 'semua' || ik === f;
+}
+
 const DEFAULT_IMAGES = {
     pengukuran: 'img/default-pengukuran.svg',
     energi: 'img/default-energi.svg',
@@ -270,8 +319,8 @@ const Store = {
             d.site = d.site || {};
             d.site.pin = d.site.pin || 'FahrulPolman';
             d.topik_list = syncTopikGlobals(d.topik_list);
-            d.materi = (d.materi || []).map(m => ({ ...m, topik: normalizeTopik(m.topik), gambar: m.gambar || '' }));
-            d.quiz = (d.quiz || []).map(q => ({ ...q, topik: q.topik || 'Umum' }));
+            d.materi = (d.materi || []).map(m => ({ ...m, topik: normalizeTopik(m.topik), kelas: normalizeKelasLevel(m.kelas), gambar: m.gambar || '' }));
+            d.quiz = (d.quiz || []).map(q => ({ ...q, topik: q.topik || 'Umum', kelas: normalizeKelasLevel(q.kelas) }));
             d.absen = d.absen || [];
             d.daftar_kelas = Array.isArray(d.daftar_kelas) ? d.daftar_kelas : [];
             d.kelas_siswa = d.kelas_siswa || {};
@@ -362,6 +411,14 @@ function cuplikan(html, len = 120) {
         return clean.length > len ? clean.slice(0, len) + '…' : (clean || 'Pelajari materi selengkapnya →');
     }
 }
+function hitungWaktuBaca(htmlOrText, wpm = 120) {
+    if (!htmlOrText) return '1 menit baca';
+    const text = (new DOMParser().parseFromString(String(htmlOrText), 'text/html').body.textContent || '').trim();
+    const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+    const menit = Math.max(1, Math.ceil(words / wpm));
+    return `${menit} menit baca`;
+}
+
 function yt(u) {
     const m = String(u || '').match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/i);
     return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` : '';
