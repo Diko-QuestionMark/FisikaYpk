@@ -1,11 +1,8 @@
 /* Penyimpanan & utilitas bersama (dipakai index.html dan admin.html) */
 const KEY = 'fisika_media_v3';
 
-/* Konfigurasi Database Cloud Neon PostgreSQL */
-const NEON_CONFIG = {
-    endpoint: 'https://ep-weathered-breeze-aoj861as-pooler.c-2.ap-southeast-1.aws.neon.tech/sql',
-    conn: 'postgresql://neondb_owner:npg_G6a3XClrKDce@ep-weathered-breeze-aoj861as-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
-};
+/* Endpoint Proxy Aman via Netlify Functions (kredensial Neon disimpan di Environment Variables Netlify) */
+const NEON_PROXY_URL = '/.netlify/functions/db';
 
 const NeonDB = {
     status: 'connecting', // 'synced' | 'syncing' | 'offline'
@@ -38,10 +35,10 @@ const NeonDB = {
     },
 
     async query(sql, params = []) {
-        const res = await fetch(NEON_CONFIG.endpoint, {
+        const res = await fetch(NEON_PROXY_URL, {
             method: 'POST',
             headers: {
-                'Neon-Connection-String': NEON_CONFIG.conn
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ query: sql, params })
         });
