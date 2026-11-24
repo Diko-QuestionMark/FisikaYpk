@@ -51,7 +51,7 @@ function confirmLeaveUnsaved() {
 
 function switchTab(nextTab) {
   if (nextTab === tab && !edit && !(typeof curMasterKls !== "undefined" && curMasterKls)) {
-    if (window.innerWidth <= 768) $("#sidebar")?.classList.remove("open");
+    closeSidebar();
     return;
   }
   if (!confirmLeaveUnsaved()) return;
@@ -70,7 +70,7 @@ function switchTab(nextTab) {
   if (nextTab === "nilai" && typeof nilaiLoaded !== "undefined") nilaiLoaded = false;
 
   draw();
-  if (window.innerWidth <= 768) $("#sidebar")?.classList.remove("open");
+  closeSidebar();
 }
 
 function confirmBackToSite(e) {
@@ -190,11 +190,47 @@ function logoutGuru() {
   }
 }
 
+function closeSidebar() {
+  const sb = $("#sidebar");
+  const bd = $("#sidebar_backdrop");
+  if (sb) sb.classList.remove("open");
+  if (bd) bd.style.display = "none";
+}
+
+function toggleSidebar() {
+  const sb = $("#sidebar");
+  const bd = $("#sidebar_backdrop");
+  if (!sb) return;
+  const willOpen = !sb.classList.contains("open");
+  sb.classList.toggle("open", willOpen);
+  if (bd) bd.style.display = willOpen ? "block" : "none";
+}
+
+let sidebarOutsideBound = false;
+function setupSidebarOutsideClose() {
+  if (sidebarOutsideBound) return;
+  sidebarOutsideBound = true;
+  document.addEventListener("click", (e) => {
+    const sb = $("#sidebar");
+    if (!sb || !sb.classList.contains("open")) return;
+    if (e.target.closest("#sidebar") || e.target.closest(".mobile-toggle")) return;
+    closeSidebar();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeSidebar();
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) closeSidebar();
+  });
+}
+
 function renderAdmin() {
   setupUnsavedGuard();
+  setupSidebarOutsideClose();
   $("#root").innerHTML = `
     <div class="admin-layout">
-      <aside class="sidebar" id="sidebar">
+      <div id="sidebar_backdrop" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:99"></div>
+      <aside class="sidebar" id="sidebar" style="z-index:100">
         <div class="sidebar-header">
           <img class="sidebar-logo" src="aset/YPKLOGO.png" alt="Logo">
           <span class="sidebar-title">Panel Guru</span>
@@ -225,7 +261,7 @@ function draw() {
   ).join("");
   const curTab = TABS.find((t) => t[0] === tab);
   $("#topbar").innerHTML = `<div style="display:flex;align-items:center;gap:12px">
-    <button class="btn sm ghost mobile-toggle" onclick="$('#sidebar').classList.toggle('open')" style="padding:4px 10px;font-size:18px">☰</button>
+    <button type="button" class="btn sm ghost mobile-toggle" onclick="toggleSidebar()" style="padding:4px 10px;font-size:18px">☰</button>
     <h2 style="margin:0">${curTab ? curTab[2] : "Admin"}</h2>
   </div>`;
   $("#app").innerHTML = {
