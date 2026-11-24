@@ -182,20 +182,56 @@ const NilaiDB = {
     }
 };
 
-/* Konfigurasi & Helper Topik Materi */
-const TOPIK_LIST = [
+/* Konfigurasi & Helper Topik Materi + Kuis (Dinamis via Admin) */
+const DEFAULT_TOPIK_LIST = [
     { id: 'pengukuran', label: 'Hakikat Fisika & Pengukuran' },
     { id: 'energi', label: 'Sumber Energi' },
     { id: 'pemanasan', label: 'Pemanasan Global' },
     { id: 'umum', label: 'Umum' }
 ];
 
-const TOPIK_MAP = {
-    pengukuran: 'Hakikat Fisika & Pengukuran',
-    energi: 'Sumber Energi',
-    pemanasan: 'Pemanasan Global',
-    umum: 'Umum'
-};
+const TOPIK_LIST = DEFAULT_TOPIK_LIST.map(x => ({ ...x }));
+const TOPIK_MAP = {};
+const TOPIK = [];
+
+function slugifyTopik(label) {
+    return String(label || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || ('topik-' + Date.now().toString(36));
+}
+
+function sanitizeTopikList(list) {
+    const src = Array.isArray(list) && list.length ? list : DEFAULT_TOPIK_LIST;
+    const seen = new Set();
+    const out = [];
+    src.forEach(item => {
+        const label = String(typeof item === 'string' ? item : (item && item.label) || '').trim();
+        if (!label) return;
+        const id = String(typeof item === 'object' && item && item.id ? item.id : slugifyTopik(label)).toLowerCase().trim();
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        out.push({ id, label });
+    });
+    if (!seen.has('umum')) out.push({ id: 'umum', label: 'Umum' });
+    return out;
+}
+
+function syncTopikGlobals(list) {
+    const clean = sanitizeTopikList(list);
+    TOPIK_LIST.length = 0;
+    clean.forEach(x => TOPIK_LIST.push(x));
+    Object.keys(TOPIK_MAP).forEach(k => delete TOPIK_MAP[k]);
+    TOPIK.length = 0;
+    clean.forEach(x => {
+        TOPIK_MAP[x.id] = x.label;
+        TOPIK.push(x.label);
+    });
+    return clean;
+}
+
+syncTopikGlobals(DEFAULT_TOPIK_LIST);
 
 const DEFAULT_IMAGES = {
     pengukuran: 'img/default-pengukuran.svg',
@@ -207,6 +243,8 @@ const DEFAULT_IMAGES = {
 function normalizeTopik(t) {
     if (!t) return 'umum';
     const s = String(t).toLowerCase().trim();
+    const exact = TOPIK_LIST.find(x => x.id === s || x.label.toLowerCase() === s);
+    if (exact) return exact.id;
     if (s === 'pengukuran' || s.includes('pengukuran') || s.includes('hakikat')) return 'pengukuran';
     if (s === 'energi' || s.includes('energi')) return 'energi';
     if (s === 'pemanasan' || s.includes('global') || s.includes('pemanasan')) return 'pemanasan';
@@ -231,6 +269,7 @@ const Store = {
             const d = JSON.parse(raw) || fallback;
             d.site = d.site || {};
             d.site.pin = d.site.pin || 'FahrulPolman';
+            d.topik_list = syncTopikGlobals(d.topik_list);
             d.materi = (d.materi || []).map(m => ({ ...m, topik: normalizeTopik(m.topik), gambar: m.gambar || '' }));
             d.quiz = (d.quiz || []).map(q => ({ ...q, topik: q.topik || 'Umum' }));
             d.absen = d.absen || [];
@@ -246,6 +285,7 @@ const Store = {
         }
     },
     save(d) {
+        if (d) d.topik_list = syncTopikGlobals(d.topik_list);
         localStorage.setItem(KEY, JSON.stringify(d));
         NeonDB.push(d); // Otomatis kirim ke cloud database Neon PostgreSQL
     },
@@ -254,8 +294,9 @@ const Store = {
     },
     async sync(callback) {
         const cloudData = await NeonDB.pull();
-        if (cloudData && typeof callback === 'function') {
-            callback(cloudData);
+        if (cloudData) {
+            cloudData.topik_list = syncTopikGlobals(cloudData.topik_list);
+            if (typeof callback === 'function') callback(cloudData);
         }
     },
     uid(p) { return p + Date.now().toString(36); }
@@ -326,12 +367,7 @@ function yt(u) {
     return m ? `<iframe class="video" src="https://www.youtube.com/embed/${m[1]}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` : '';
 }
 const TIPE = { native: 'Kuis di website', link: 'Link eksternal' };
-const TOPIK = [
-    'Hakikat Fisika & Pengukuran',
-    'Sumber Energi',
-    'Pemanasan Global',
-    'Umum'
-];
+
 /* Header & footer sama di semua halaman agar tampilan konsisten */
 function shell(active, nav = []) {
     const d = Store.get().site;

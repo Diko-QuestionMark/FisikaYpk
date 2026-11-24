@@ -78,20 +78,33 @@ function pAbsen() {
 
   /* LEVEL 1: Daftar Kelas */
   if (!curAbsenKls && !edit) {
-    const klsList = getKelasList();
+    const klsList = [...getKelasList()].sort((a, b) => {
+      if (typeof getKelasMeta === "function") {
+        const ma = getKelasMeta(a);
+        const mb = getKelasMeta(b);
+        if (ma.order !== mb.order) return ma.order - mb.order;
+        return ma.clean.localeCompare(mb.clean, "id", { numeric: true });
+      }
+      return String(a).localeCompare(String(b), "id", { numeric: true });
+    });
     const cards = klsList
-      .map((k) => {
+      .map((k, idx) => {
         const pertemuanList = getPertemuanByKelas(k);
         const totalSlot = getJumlahSlotPertemuan(k);
         const jumlahSiswa = (D.kelas_siswa[k] || []).length;
         const safeK = esc(k).replace(/'/g, "\\'");
         const badge = getKelasBadge(k);
+        const meta = typeof getKelasMeta === "function" ? getKelasMeta(k) : null;
+        const iconBg = meta ? meta.bg : badge.bg;
+        const iconHtml = typeof getKelasIcon === "function"
+          ? `<div style="width:44px;height:44px;border-radius:12px;background:${iconBg};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${getKelasIcon(k, idx)}</div>`
+          : `<div style="width:44px;height:44px;border-radius:12px;background:${badge.bg};color:${badge.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;letter-spacing:-0.02em">${esc(badge.label)}</div>`;
         const pct = totalSlot ? Math.min(100, Math.round((pertemuanList.length / totalSlot) * 100)) : 0;
 
         return `
           <div class="crud-card" style="cursor:pointer" onclick="openAbsenKelas('${safeK}')">
             <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
-              <div style="width:44px;height:44px;border-radius:12px;background:${badge.bg};color:${badge.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;letter-spacing:-0.02em">${esc(badge.label)}</div>
+              ${iconHtml}
               <div class="crud-card-left">
                 <h3 class="crud-card-title">${esc(formatKelasLabel(k))}</h3>
                 <div class="crud-card-sub">

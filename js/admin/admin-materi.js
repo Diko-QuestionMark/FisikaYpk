@@ -177,10 +177,7 @@ function pMateri() {
           </div>
           <select onchange="filterTopikMateri=this.value;draw()" style="width:auto;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;cursor:pointer">
             <option value="Semua" ${filterTopikMateri === "Semua" ? "selected" : ""}>Semua Topik</option>
-            <option value="pengukuran" ${filterTopikMateri === "pengukuran" ? "selected" : ""}>Hakikat Fisika & Pengukuran</option>
-            <option value="energi" ${filterTopikMateri === "energi" ? "selected" : ""}>Sumber Energi</option>
-            <option value="pemanasan" ${filterTopikMateri === "pemanasan" ? "selected" : ""}>Pemanasan Global</option>
-            <option value="umum" ${filterTopikMateri === "umum" ? "selected" : ""}>Umum</option>
+            ${TOPIK_LIST.map((t) => `<option value="${esc(t.id)}" ${filterTopikMateri === t.id ? "selected" : ""}>${esc(t.label)}</option>`).join("")}
           </select>
         </div>
         <button class="crud-btn-add" onclick="edit='new';draw()">${ICON_PLUS} Tambah</button>
@@ -238,10 +235,7 @@ function pMateri() {
             <div>
               <label>Topik</label>
               <select id="topik" onchange="updateLivePreview()">
-                <option value="pengukuran" ${curTopik === "pengukuran" ? "selected" : ""}>Hakikat Fisika & Pengukuran</option>
-                <option value="energi" ${curTopik === "energi" ? "selected" : ""}>Sumber Energi</option>
-                <option value="pemanasan" ${curTopik === "pemanasan" ? "selected" : ""}>Pemanasan Global</option>
-                <option value="umum" ${curTopik === "umum" ? "selected" : ""}>Umum</option>
+                ${TOPIK_LIST.map((t) => `<option value="${esc(t.id)}" ${curTopik === t.id ? "selected" : ""}>${esc(t.label)}</option>`).join("")}
               </select>
             </div>
           </div>

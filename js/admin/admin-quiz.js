@@ -5,6 +5,40 @@ let showQuizSettings = false;
 let activeSoalIdx = 0;
 let previewQuizState = null;
 
+function getExternalQuizVisual(link) {
+    const u = String(link || "").toLowerCase();
+    if (u.includes("docs.google.com/forms") || u.includes("forms.gle")) {
+        return {
+            label: "Google Forms",
+            bg: "#f3e8ff",
+            color: "#7c3aed",
+            svg: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="8.5" cy="12.5" r="0.8" fill="currentColor"/><line x1="11" y1="12.5" x2="16" y2="12.5"/><circle cx="8.5" cy="16" r="0.8" fill="currentColor"/><line x1="11" y1="16" x2="16" y2="16"/></svg>`
+        };
+    }
+    if (u.includes("quizizz.com") || u.includes("wayground.com")) {
+        return {
+            label: "Quizizz",
+            bg: "#fae8ff",
+            color: "#8854c0",
+            svg: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" fill="currentColor" opacity="0.14"/><text x="12" y="16.5" text-anchor="middle" font-size="14" font-weight="800" fill="currentColor" font-family="Plus Jakarta Sans, system-ui, sans-serif">Q</text></svg>`
+        };
+    }
+    if (u.includes("kahoot.it") || u.includes("kahoot.com")) {
+        return {
+            label: "Kahoot!",
+            bg: "#ede9fe",
+            color: "#46178f",
+            svg: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" fill="currentColor" opacity="0.14"/><text x="12" y="16.5" text-anchor="middle" font-size="13.5" font-weight="800" fill="currentColor" font-family="Plus Jakarta Sans, system-ui, sans-serif">K!</text></svg>`
+        };
+    }
+    return {
+        label: "Eksternal",
+        bg: "#f1f5f9",
+        color: "#475569",
+        svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
+    };
+}
+
 function pQuiz() {
   if (!edit) {
     Q = null;
@@ -18,18 +52,25 @@ function pQuiz() {
     const items = list
       .map((x) => {
         const topikLabel = x.topik || "Umum";
-        const vis = typeof getTopikVisual === "function"
+        const topikVis = typeof getTopikVisual === "function"
           ? getTopikVisual(topikLabel)
           : { bg: "var(--primary-soft)", color: "var(--primary)", svg: "✏️" };
+        const extVis = x.tipe !== "native" ? getExternalQuizVisual(x.link) : null;
+        const iconVis = extVis || topikVis;
+        const linkedMateri = (D.materi || []).find((m) => m.quizId === x.id && m.gambar && String(m.gambar).trim());
+        const thumbHtml = linkedMateri
+          ? `<img src="${esc(String(linkedMateri.gambar).trim())}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
+          : iconVis.svg;
+        const tipeText = x.tipe === "native" ? `${TIPE.native} · ${x.soal.length} soal` : extVis.label;
         return `
       <div class="crud-card">
         <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
-          <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;flex-shrink:0" title="${esc(topikLabel)}">${vis.svg}</div>
+          <div style="width:44px;height:44px;border-radius:12px;background:${iconVis.bg};color:${iconVis.color};display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0" title="${esc(extVis ? extVis.label : topikLabel)}">${thumbHtml}</div>
           <div class="crud-card-left">
             <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
             <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
-              <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${vis.bg};color:${vis.color}">${esc(topikLabel)}</span>
-              <span>${TIPE[x.tipe] || "Link eksternal"}${x.tipe === "native" ? ` · ${x.soal.length} soal` : ""}</span>
+              <span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${topikVis.bg};color:${topikVis.color}">${esc(topikLabel)}</span>
+              <span>${esc(tipeText)}</span>
             </div>
           </div>
         </div>
@@ -888,11 +929,15 @@ function pNilai() {
           ? getTopikVisual(q.topik)
           : { bg: "var(--primary-soft)", color: "var(--primary)", svg: "🏆" };
         const safeId = esc(q.id).replace(/'/g, "\\'");
+        const linkedMateri = (D.materi || []).find((m) => m.quizId === q.id && m.gambar && String(m.gambar).trim());
+        const thumbHtml = linkedMateri
+          ? `<img src="${esc(String(linkedMateri.gambar).trim())}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
+          : vis.svg;
 
         return `
           <div class="crud-card" style="cursor:pointer" onclick="openNilaiQuiz('${safeId}')">
             <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
-              <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${vis.svg}</div>
+              <div style="width:44px;height:44px;border-radius:12px;background:${vis.bg};color:${vis.color};display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">${thumbHtml}</div>
               <div class="crud-card-left">
                 <h3 class="crud-card-title">${esc(q.judul)}</h3>
                 <div class="crud-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
