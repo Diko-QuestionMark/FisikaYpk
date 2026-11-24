@@ -239,6 +239,20 @@ function home() {
     const m = document.querySelector('main');
     m.style.padding = '0';
     m.style.background = '';
+
+    const materiWithCover = [...(D.materi || [])]
+        .reverse()
+        .filter(x => x.gambar && String(x.gambar).trim())
+        .slice(0, 3);
+
+    const quizWithCover = [...(D.quiz || [])]
+        .reverse()
+        .filter(q =>
+            (q.gambar && String(q.gambar).trim()) ||
+            (D.materi || []).some(x => x.quizId === q.id && x.gambar && String(x.gambar).trim())
+        )
+        .slice(0, 3);
+
     m.innerHTML = `
         <section class="hero">
             <div class="wrap">
@@ -249,11 +263,11 @@ function home() {
         </section>
         <div class="wrap" style="padding:28px 16px 16px">
             <h2 style="margin:0 0 14px">Materi terbaru</h2>
-            ${cards(D.materi.slice(-3).reverse(), 'm')}
+            ${cards(materiWithCover, 'm')}
         </div>
         <div class="wrap" style="padding:16px 16px 48px">
             <h2 style="margin:0 0 14px">Quiz terbaru</h2>
-            ${cards(D.quiz.slice(-3).reverse(), 'q')}
+            ${cards(quizWithCover, 'q')}
         </div>`;
 }
 
