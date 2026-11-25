@@ -8,7 +8,8 @@ const ICON_SEARCH_SISWA = `<svg class="crud-search-icon" width="18" height="18" 
 /* -------------------------
    STATE GLOBAL
 ------------------------- */
-let D;        // data aplikasi (dari Store / Neon)a
+let D;        // data aplikasi (dari Store / Neon)
+let isCloudSyncing = true;
 let run;      // state kuis yang sedang berjalan
 let navStack = []; // riwayat halaman untuk tombol ← Kembali yang akurat
 let qMateri = '', fTopikMateri = 'Semua';
@@ -139,6 +140,20 @@ function getQuizTopicIcon(topik) {
     return map[key] || map.umum;
 }
 
+function skeletonCards(count = 3) {
+    return `<div class="grid">${Array.from({ length: count }, () => `
+        <div class="card sk-card" aria-hidden="true">
+            <div class="sk-box sk-img"></div>
+            <div class="sk-body">
+                <div class="sk-box sk-title"></div>
+                <div class="sk-box sk-line"></div>
+                <div class="sk-box sk-line short"></div>
+                <div class="sk-box sk-cta"></div>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+
 function cards(l, t, emptyMsg) {
     if (!l.length)
         return `<div class="empty">${emptyMsg || (t === 'm' ? 'Tidak ada materi' : 'Tidak ada kuis')}</div>`;
@@ -219,7 +234,7 @@ function updateMateriList() {
     const emptyMsg = qMateri.trim() || fTopikMateri !== 'Semua'
         ? 'Tidak ditemukan materi yang sesuai dengan pencarian atau filter.'
         : 'Belum ada materi.';
-    el.innerHTML = cards(list, 'm', emptyMsg);
+    el.innerHTML = isCloudSyncing ? skeletonCards(3) : cards(list, 'm', emptyMsg);
 }
 
 function getFilteredQuiz() {
@@ -242,7 +257,7 @@ function updateQuizList() {
     const emptyMsg = qQuiz.trim() || fTopikQuiz !== 'Semua'
         ? 'Tidak ditemukan kuis yang sesuai dengan pencarian atau filter.'
         : 'Belum ada kuis.';
-    el.innerHTML = cards(list, 'q', emptyMsg);
+    el.innerHTML = isCloudSyncing ? skeletonCards(3) : cards(list, 'q', emptyMsg);
 }
 
 /* -------------------------
@@ -271,18 +286,24 @@ function home() {
     m.innerHTML = `
         <section class="hero">
             <div class="wrap">
-                <h1>${esc(D.site.tagline)}</h1>
-                <p>${esc(D.site.deskripsi)}</p>
-                <a class="btn" href="#materi">Mulai belajar</a>
+                ${isCloudSyncing
+                    ? `<div class="sk-hero-title"></div>
+                       <div class="sk-hero-sub"></div>
+                       <div class="sk-hero-sub short"></div>
+                       <div class="sk-hero-btn"></div>`
+                    : `<h1>${esc(D.site.tagline)}</h1>
+                       <p>${esc(D.site.deskripsi)}</p>
+                       <a class="btn" href="#materi">Mulai belajar</a>`
+                }
             </div>
         </section>
         <div class="wrap" style="padding:28px 16px 16px">
             <h2 style="margin:0 0 14px">Materi terbaru</h2>
-            ${cards(materiWithCover, 'm')}
+            ${isCloudSyncing ? skeletonCards(3) : cards(materiWithCover, 'm')}
         </div>
         <div class="wrap" style="padding:16px 16px 48px">
             <h2 style="margin:0 0 14px">Quiz terbaru</h2>
-            ${cards(quizWithCover, 'q')}
+            ${isCloudSyncing ? skeletonCards(3) : cards(quizWithCover, 'q')}
         </div>`;
 }
 
@@ -884,6 +905,7 @@ addEventListener('pagehide', () => {
 route();
 
 Store.sync(cloud => {
-    D = cloud;
+    isCloudSyncing = false;
+    if (cloud) D = cloud;
     if (!run) route();
 });

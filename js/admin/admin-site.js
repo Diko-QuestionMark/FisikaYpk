@@ -46,7 +46,7 @@ function pSite() {
             </div>
           </div>
           <div class="crud-actions">
-            <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openSiteView('topik')">Kelola →</button>
+            <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openSiteView('topik')">Atur →</button>
           </div>
         </div>
 
@@ -59,7 +59,7 @@ function pSite() {
             </div>
           </div>
           <div class="crud-actions">
-            <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openSiteView('data')">Buka →</button>
+            <button type="button" class="btn sm ghost" onclick="event.stopPropagation();openSiteView('data')">Atur →</button>
           </div>
         </div>
       </div>
@@ -190,7 +190,7 @@ function pData() {
         <label class="btn ghost" style="margin:0;cursor:pointer">Pulihkan dari File<input type="file" accept=".json" hidden onchange="imp(this.files[0]);this.value=''"></label>
       </div>
       <div class="row" style="margin-top:20px;gap:8px">
-        <button type="button" class="btn ghost" onclick="openSiteView(null)">← Kembali</button>
+        <button type="button" class="btn ghost" onclick="openSiteView(null)">Kembali</button>
       </div>
     </div>`;
 }

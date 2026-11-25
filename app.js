@@ -345,8 +345,8 @@ const Store = {
         const cloudData = await NeonDB.pull();
         if (cloudData) {
             cloudData.topik_list = syncTopikGlobals(cloudData.topik_list);
-            if (typeof callback === 'function') callback(cloudData);
         }
+        if (typeof callback === 'function') callback(cloudData || null);
     },
     uid(p) { return p + Date.now().toString(36); }
 };
