@@ -180,30 +180,33 @@ function cards(l, t, emptyMsg) {
         const soalCount = isNative && Array.isArray(x.soal) ? x.soal.length : 0;
         const estMenit = x.durasi !== undefined ? (x.durasi || 'Bebas') : Math.max(5, Math.round(soalCount * 1.5));
         const extVis = !isNative ? getExternalQuizVisual(x.link) : null;
-        const icon = isNative ? getQuizTopicIcon(x.topik) : extVis;
-        const linkedMateri = (D.materi || []).find(m => m.quizId === x.id && m.gambar && String(m.gambar).trim());
-        const bannerInner = linkedMateri
-            ? `<img src="${esc(String(linkedMateri.gambar).trim())}" alt="${esc(x.judul)}" loading="lazy" />
-               <div class="quiz-banner-shade"></div>`
-            : `<div class="quiz-banner-icon" style="color:${icon.color}">${icon.svg}</div>`;
+        const topicIcon = isNative ? getQuizTopicIcon(x.topik) : extVis;
+        const boxBg = isNative ? topicIcon.bg : extVis.bg;
 
-        const chipsHtml = isNative
-            ? `<span class="quiz-chip">📝 ${soalCount} soal</span>
-               <span class="quiz-chip">⏱ ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}</span>`
-            : `<span class="quiz-chip">🌐 ${esc(extVis.label)}</span>
-               <span class="quiz-chip">Online</span>`;
+        const linkedMateri = (D.materi || []).find(m => m.quizId === x.id && m.gambar && String(m.gambar).trim());
+        const bgLayer = linkedMateri
+            ? `<div class="quiz-bg-layer">
+                   <img src="${esc(String(linkedMateri.gambar).trim())}" alt="" loading="lazy" />
+                   <div class="quiz-bg-fade"></div>
+               </div>`
+            : `<div class="quiz-bg-layer is-pastel" style="--qb-bg:${boxBg}">
+                   <div class="quiz-bg-fade"></div>
+               </div>`;
+
+        const metaLeft = isNative
+            ? `📝 ${soalCount} soal · ${estMenit === 'Bebas' ? 'Tanpa batas' : estMenit + ' menit'}`
+            : `🌐 ${extVis.label} · Online`;
 
         const startLabel = isNative ? 'Kerjakan →' : 'Buka ↗';
 
         return `<div class="card card-quiz clickable" onclick="${handler}">
-            <div class="quiz-banner${linkedMateri ? ' has-img' : ''}" style="--qb-bg:${icon.bg};--qb-color:${icon.color}">
-                ${bannerInner}
-                
-            </div>
-            <div class="card-materi-body">
+            ${bgLayer}
+            <div class="quiz-card-inner">
                 <h3 class="quiz-card-title">${esc(x.judul)}</h3>
-                <div class="quiz-chips">${chipsHtml}</div>
-                <span class="quiz-start-btn">${startLabel}</span>
+                <div class="quiz-card-foot-row">
+                    <span class="quiz-foot-meta">${esc(metaLeft)}</span>
+                    <span class="quiz-start-btn">${startLabel}</span>
+                </div>
             </div>
         </div>`;
     }).join('')}</div>`;
@@ -503,7 +506,18 @@ function quizIntro(q) {
     const durasiText = durasiMenit === 0
         ? 'Tanpa batas waktu'
         : `Batas waktu ${durasiMenit} menit`;
-    const klsList = Array.isArray(D.daftar_kelas) ? D.daftar_kelas : [];
+    const klsOrder = k => {
+        const clean = String(k || '').replace(/^kelas\s+/i, '').trim();
+        let ord = 4;
+        if (/^XII\b/i.test(clean)) ord = 3;
+        else if (/^XI\b/i.test(clean)) ord = 2;
+        else if (/^X\b/i.test(clean)) ord = 1;
+        return { ord, clean };
+    };
+    const klsList = (Array.isArray(D.daftar_kelas) ? [...D.daftar_kelas] : []).sort((a, b) => {
+        const ka = klsOrder(a), kb = klsOrder(b);
+        return ka.ord !== kb.ord ? ka.ord - kb.ord : ka.clean.localeCompare(kb.clean, 'id', { numeric: true });
+    });
     const savedKls = sessionStorage.getItem('siswa_kelas') || '';
     const savedNama = sessionStorage.getItem('siswa_nama') || '';
 
@@ -514,12 +528,25 @@ function quizIntro(q) {
            </select>`
         : `<input id="q_kelas" value="${esc(savedKls)}" placeholder="Contoh: X A">`;
 
+    const linkedMateriIntro = (D.materi || []).find(m => m.quizId === q.id && m.gambar && String(m.gambar).trim());
+    const introIcon = getQuizTopicIcon(q.topik);
+    const introBgHtml = linkedMateriIntro
+        ? `<div class="quiz-bg-layer quiz-intro-bg">
+               <img src="${esc(String(linkedMateriIntro.gambar).trim())}" alt="" loading="lazy" />
+               <div class="quiz-bg-fade"></div>
+           </div>`
+        : `<div class="quiz-bg-layer quiz-intro-bg is-pastel" style="--qb-bg:${introIcon.bg}">
+               <div class="quiz-bg-fade"></div>
+           </div>`;
+
     a.innerHTML = `
         <div class="content-wrapper">
             <div class="read-topbar">
                 <a class="back" href="javascript:void(0)" onclick="goBack()">← Kembali</a>
             </div>
-            <div class="qbox">
+            <div class="qbox qbox-intro">
+                ${introBgHtml}
+                <div class="quiz-intro-content">
                 <h2 style="margin:0 0 8px;font-size:26px">${esc(q.judul)}</h2>
                 <p class="sub" style="margin-bottom:20px">${esc(q.deskripsi || 'Uji pemahaman fisikamu pada topik ini.')}</p>
 
@@ -555,6 +582,7 @@ function quizIntro(q) {
                 <button class="btn" style="width:100%;padding:14px;font-size:16px;text-align:center" onclick="startQuiz('${q.id}')">
                     Mulai Kuis Sekarang →
                 </button>
+                </div>
             </div>
         </div>`;
 }
