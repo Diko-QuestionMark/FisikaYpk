@@ -1860,3 +1860,59 @@ main:has(.read) {
 
 }
 
+
+
+/* Mode Ujian (Anti-Salin, Pilihan Netral, Peringatan Tab) */
+
+.qbox.exam-mode .quiz-question,
+
+.qbox.exam-mode .quiz-opts {
+
+  user-select: none;
+
+  -webkit-user-select: none;
+
+}
+
+
+
+.q-seg.done { background: #38bdf8; }
+
+
+
+.opt.picked {
+
+  border-color: var(--primary);
+
+  border-bottom-color: var(--primary);
+
+  background: var(--primary-soft);
+
+}
+
+
+
+.opt.picked .opt-mark { color: var(--primary); }
+
+
+
+.exam-warn-banner {
+
+  margin-bottom: 12px;
+
+  padding: 9px 13px;
+
+  border-radius: 10px;
+
+  background: #fef3c7;
+
+  border: 1px solid #fde68a;
+
+  color: #92400e;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+}
+

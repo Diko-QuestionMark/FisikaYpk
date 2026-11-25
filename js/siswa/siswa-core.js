@@ -243,7 +243,7 @@ function updateMateriList() {
 function getFilteredQuiz() {
     const q = qQuiz.toLowerCase().trim();
     return (D.quiz || []).filter(x => {
-        if (!isPublishedItem(x)) return false;
+        if (!isPublishedItem(x) || x.linkOnly) return false;
         if (typeof matchKelasFilter === 'function' && !matchKelasFilter(x.kelas, fKelasSiswa)) return false;
         const topik = x.topik || 'Umum';
         if (fTopikQuiz !== 'Semua' && topik !== fTopikQuiz) return false;
@@ -279,7 +279,7 @@ function home() {
     const quizWithCover = [...(D.quiz || [])]
         .reverse()
         .filter(q =>
-            isPublishedItem(q) && (
+            isPublishedItem(q) && !q.linkOnly && (
                 (q.gambar && String(q.gambar).trim()) ||
                 (D.materi || []).some(x => isPublishedItem(x) && x.quizId === q.id && x.gambar && String(x.gambar).trim())
             )
@@ -354,7 +354,7 @@ function materi(id) {
         ? `<img src="${esc(coverUrl)}" alt="${esc(m.judul)}" style="width:100%;max-height:340px;object-fit:cover;border-radius:12px;margin:0 0 22px;display:block">`
         : '';
 
-    const linkedQuiz = m.quizId ? (D.quiz || []).find(q => q.id === m.quizId && isPublishedItem(q)) : null;
+    const linkedQuiz = m.quizId ? (D.quiz || []).find(q => q.id === m.quizId && isPublishedItem(q) && !q.linkOnly) : null;
     let quizEmbedHtml = '';
     if (linkedQuiz) {
         const isNative = linkedQuiz.tipe === 'native';
@@ -553,7 +553,7 @@ function quizIntro(q) {
                 <div class="quiz-intro-meta">
                     <span class="quiz-intro-badge">📝 ${q.soal.length} Butir Soal</span>
                     <span class="quiz-intro-badge">⏱️ ${durasiText}</span>
-                    <span class="quiz-intro-badge">🎯 Pilihan Ganda</span>
+                    <span class="quiz-intro-badge">${q.examMode ? '🔒 Mode Ujian' : '🎯 Mode Latihan'}</span>
                 </div>
 
                 <div class="quiz-rules-box">
@@ -561,7 +561,11 @@ function quizIntro(q) {
                     <ol class="quiz-rules-list">
                         <li>Pilih kelas dan ketik nama lengkapmu terlebih dahulu sebelum memulai.</li>
                         <li>Baca setiap soal dan pilih <strong>satu jawaban</strong> yang paling tepat.</li>
-                        <li>Setelah memilih opsi, kunci jawaban dan pembahasan akan langsung muncul.</li>
+                        ${q.examMode
+                            ? `<li>Kunci jawaban dan pembahasan ditahan selama ujian berlangsung; kamu bisa meninjau soal sebelum mengumpulkan.</li>
+                               <li>Dilarang menyalin soal atau berpindah tab—aktivitas keluar tab otomatis tercatat untuk guru.</li>`
+                            : `<li>Setelah memilih opsi, kunci jawaban dan pembahasan akan langsung muncul.</li>`
+                        }
                         ${durasiMenit > 0 ? `<li>Batas waktu pengerjaan <strong>${durasiMenit} menit</strong>; jika waktu habis, jawaban otomatis dikumpulkan.</li>` : ''}
                         <li>Skor akhir (0–100) otomatis tercatat untuk penilaian guru.</li>
                     </ol>
@@ -623,7 +627,7 @@ function startQuiz(id, retryIdent) {
     clearQuizTimer();
     const durasiMenit = getQuizDurasiMenit(q);
     const endAt = durasiMenit > 0 ? Date.now() + durasiMenit * 60 * 1000 : null;
-    run = { q: { ...q, soal: soalList }, i: 0, ans: [], lock: false, kelas, nama, saved: false, streak: 0, maxStreak: 0, endAt, timerId: null, timedOut: false };
+    run = { q: { ...q, soal: soalList }, i: 0, ans: [], lock: false, kelas, nama, saved: false, streak: 0, maxStreak: 0, endAt, timerId: null, timedOut: false, examMode: !!q.examMode, tabSwitches: 0, lastBlurAt: 0 };
     startQuizTimer();
     step();
 }
@@ -713,12 +717,42 @@ function step() {
                            </div>`
                         : `<p class="sub">Jawabanmu sudah diterima dan tercatat oleh guru.</p>`
                     }
-                    <div class="row" style="justify-content:center;margin-top:22px">
+                    <div class="row" style="justify-content:center;margin-top:22px;gap:10px">
+                        ${run.examMode && showScore ? `<button class="btn ghost" id="q_review_btn">Lihat Pembahasan</button>` : ''}
                         <button class="btn" id="q_retry_btn">Ulangi Kuis</button>
-                        <a class="btn ghost" href="#quiz">Selesai</a>
+                        <a class="btn ghost" href="${q.linkOnly ? '#home' : '#quiz'}">Selesai</a>
                     </div>
                 </div>
+                <div id="q_review_wrap" style="display:none;margin-top:18px"></div>
             </div>`;
+
+        const revBtn = document.getElementById('q_review_btn');
+        const revWrap = document.getElementById('q_review_wrap');
+        if (revBtn && revWrap) {
+            revBtn.onclick = () => {
+                const open = revWrap.style.display === 'none';
+                if (open && !revWrap.innerHTML) {
+                    revWrap.innerHTML = q.soal.map((item, idx) => {
+                        const ansIdx = run.ans[idx];
+                        const isOk = ansIdx === item.a;
+                        const pickedText = ansIdx !== undefined && item.o[ansIdx] !== undefined ? esc(item.o[ansIdx]) : '<i>Tidak dijawab</i>';
+                        const keyText = esc(item.o[item.a] || '');
+                        return `<div class="qbox" style="padding:18px 22px;margin-bottom:12px">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+                                <span style="font-size:12.5px;font-weight:700;color:var(--text-muted)">Soal ${idx + 1}</span>
+                                <span style="font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:${isOk ? '#dcfce7' : '#fee2e2'};color:${isOk ? '#15803d' : '#b91c1c'}">${isOk ? '✓ Benar' : '✕ Kurang tepat'}</span>
+                            </div>
+                            <div style="font-size:15px;font-weight:600;line-height:1.55;margin-bottom:10px">${esc(item.q)}</div>
+                            <div style="font-size:13.5px;color:var(--text-muted);margin-bottom:4px">Jawabanmu: <b style="color:${isOk ? '#15803d' : '#b91c1c'}">${pickedText}</b></div>
+                            ${!isOk ? `<div style="font-size:13.5px;color:var(--text-muted);margin-bottom:4px">Kunci: <b style="color:#15803d">${keyText}</b></div>` : ''}
+                            ${item.e ? `<div class="exp ${isOk ? 'ok' : 'bad'}" style="margin-top:8px">${esc(item.e)}</div>` : ''}
+                        </div>`;
+                    }).join('');
+                }
+                revWrap.style.display = open ? 'block' : 'none';
+                revBtn.textContent = open ? 'Tutup Pembahasan' : 'Lihat Pembahasan';
+            };
+        }
 
         const retryBtn = document.getElementById('q_retry_btn');
         if (retryBtn) retryBtn.onclick = () => startQuiz(q.id, { kelas: run.kelas, nama: run.nama });
@@ -743,39 +777,85 @@ function step() {
     }
 
     const s = q.soal[i];
+    const isExam = !!run.examMode;
     const segs = q.soal.map((item, idx) => {
+        if (isExam) {
+            if (idx === i) return `<span class="q-seg now"></span>`;
+            if (run.ans[idx] !== undefined) return `<span class="q-seg done"></span>`;
+            return `<span class="q-seg"></span>`;
+        }
         if (idx < i) return `<span class="q-seg ${run.ans[idx] === item.a ? 'ok' : 'bad'}"></span>`;
         if (idx === i) return `<span class="q-seg now"></span>`;
         return `<span class="q-seg"></span>`;
     }).join('');
 
+    const curPicked = run.ans[i];
+    const examWarnHtml = isExam && run.tabSwitches > 0
+        ? `<div class="exam-warn-banner" id="q_exam_warn">⚠️ Keluar dari halaman ujian terdeteksi (${run.tabSwitches}×) dan tercatat untuk guru.</div>`
+        : `<div class="exam-warn-banner" id="q_exam_warn" style="display:none"></div>`;
+
+    const examNavHtml = isExam
+        ? `<div class="quiz-fb-actions" style="justify-content:space-between;gap:10px;margin-top:18px">
+               ${i > 0 ? `<button type="button" class="btn ghost" id="q_prev_btn">← Sebelumnya</button>` : `<span></span>`}
+               <button type="button" class="btn" id="nx">${i + 1 < q.soal.length ? 'Berikutnya →' : 'Kumpulkan Jawaban →'}</button>
+           </div>`
+        : `<div id="fb"></div>`;
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
     a.innerHTML = `
         <div class="content-wrapper">
-            <div class="qbox qbox-enter">
+            <div class="qbox qbox-enter${isExam ? ' exam-mode' : ''}">
                 <div class="quiz-head" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:nowrap">
                     <span class="quiz-step-pill" style="white-space:nowrap">Soal ${i + 1} / ${q.soal.length}</span>
                     <div class="quiz-live-stats" style="display:flex;align-items:center;gap:8px;margin-left:auto">
-                        ${run.streak >= 2 ? `<span class="quiz-streak-pill" id="q_streak">🔥 ${run.streak}x Streak</span>` : `<span class="quiz-streak-pill" id="q_streak" style="display:none"></span>`}
+                        ${!isExam && run.streak >= 2 ? `<span class="quiz-streak-pill" id="q_streak">🔥 ${run.streak}x Streak</span>` : `<span class="quiz-streak-pill" id="q_streak" style="display:none"></span>`}
+                        ${isExam ? `<span class="quiz-chip" style="background:#fef3c7;color:#92400e">🔒 Mode Ujian</span>` : ''}
                         ${run.endAt ? `<span id="q_timer" style="display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap">⏱ ${formatTimer((run.endAt - Date.now()) / 1000)}</span>` : ''}
-                        <button type="button" class="quiz-sound-btn" id="q_sound_btn" style="white-space:nowrap" onclick="toggleQuizSound()">${quizSoundOn ? '🔊 Suara' : '🔇 Bisukan'}</button>
+                        ${!isExam ? `<button type="button" class="quiz-sound-btn" id="q_sound_btn" style="white-space:nowrap" onclick="toggleQuizSound()">${quizSoundOn ? '🔊 Suara' : '🔇 Bisukan'}</button>` : ''}
                     </div>
                 </div>
+                ${examWarnHtml}
                 <div class="q-segs">${segs}</div>
                 <div class="quiz-question">${esc(s.q)}</div>
                 <div class="quiz-opts">
-                    ${s.o.map((o, k) => `<button class="opt" data-k="${k}"><span class="opt-text">${esc(o)}</span><span class="opt-mark"></span></button>`).join('')}
+                    ${s.o.map((o, k) => `<button class="opt${isExam && curPicked === k ? ' picked' : ''}" data-k="${k}"><span class="opt-text">${esc(o)}</span><span class="opt-mark">${isExam && curPicked === k ? '●' : ''}</span></button>`).join('')}
                 </div>
-                <div id="fb"></div>
+                ${examNavHtml}
             </div>
         </div>`;
 
     updateTimerUI();
+    if (isExam) {
+        const prevBtn = document.getElementById('q_prev_btn');
+        if (prevBtn) prevBtn.onclick = () => { if (run.i > 0) { run.i--; step(); } };
+        const nxBtn = document.getElementById('nx');
+        if (nxBtn) nxBtn.onclick = () => {
+            if (run.ans[i] === undefined && i + 1 < q.soal.length) {
+                if (!confirm('Soal ini belum dijawab. Tetap lanjut ke soal berikutnya?')) return;
+            } else if (i + 1 >= q.soal.length) {
+                const belum = q.soal.filter((_, idx) => run.ans[idx] === undefined).length;
+                const msg = belum ? `Masih ada ${belum} soal belum dijawab. Yakin ingin mengumpulkan sekarang?` : 'Yakin ingin mengumpulkan semua jawaban?';
+                if (!confirm(msg)) return;
+            }
+            run.i++;
+            step();
+        };
+    }
+
     a.querySelectorAll('.opt').forEach(b => {
         b.onclick = () => {
+            const k = +b.dataset.k;
+            if (isExam) {
+                run.ans[i] = k;
+                a.querySelectorAll('.opt').forEach((x, j) => {
+                    x.classList.toggle('picked', j === k);
+                    const mk = x.querySelector('.opt-mark');
+                    if (mk) mk.textContent = j === k ? '●' : '';
+                });
+                return;
+            }
             if (run.lock) return;
             run.lock = true;
-            const k = +b.dataset.k;
             const isOk = k === s.a;
             run.ans[i] = k;
 
@@ -884,7 +964,8 @@ function saveQuizAttempt() {
         nama: run.nama,
         benar,
         total,
-        skor
+        skor,
+        tab_switches: run.tabSwitches || 0
     });
 }
 
@@ -936,4 +1017,27 @@ Store.sync(cloud => {
     isCloudSyncing = false;
     if (cloud) D = cloud;
     if (!run) route();
+});
+function recordExamTabLeave() {
+    if (!isQuizInProgress() || !run.examMode) return;
+    const now = Date.now();
+    if (now - (run.lastBlurAt || 0) < 900) return;
+    run.lastBlurAt = now;
+    run.tabSwitches = (run.tabSwitches || 0) + 1;
+    const warn = document.getElementById('q_exam_warn');
+    if (warn) {
+        warn.textContent = `⚠️ Keluar dari halaman ujian terdeteksi (${run.tabSwitches}×) dan tercatat untuk guru.`;
+        warn.style.display = 'block';
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) recordExamTabLeave();
+});
+window.addEventListener('blur', recordExamTabLeave);
+document.addEventListener('contextmenu', e => {
+    if (isQuizInProgress() && run.examMode && e.target.closest('.qbox.exam-mode')) e.preventDefault();
+});
+document.addEventListener('copy', e => {
+    if (isQuizInProgress() && run.examMode && e.target.closest('.qbox.exam-mode')) e.preventDefault();
 });

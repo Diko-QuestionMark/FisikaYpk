@@ -102,9 +102,11 @@ const NilaiDB = {
                 benar INT NOT NULL,
                 total INT NOT NULL,
                 skor INT NOT NULL,
+                tab_switches INT DEFAULT 0,
                 created_at BIGINT NOT NULL
             );
         `);
+        await NeonDB.query(`ALTER TABLE quiz_results ADD COLUMN IF NOT EXISTS tab_switches INT DEFAULT 0;`);
         this._ready = true;
     },
 
@@ -127,6 +129,7 @@ const NilaiDB = {
             benar: Number(rec.benar) || 0,
             total: Number(rec.total) || 0,
             skor: Number(rec.skor) || 0,
+            tab_switches: Number(rec.tab_switches) || 0,
             created_at: Date.now()
         };
         const local = this.getLocal();
@@ -135,9 +138,9 @@ const NilaiDB = {
         try {
             await this.ensureTable();
             await NeonDB.query(
-                `INSERT INTO quiz_results (id, quiz_id, quiz_judul, kelas, nama, benar, total, skor, created_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
-                [item.id, item.quiz_id, item.quiz_judul, item.kelas, item.nama, item.benar, item.total, item.skor, item.created_at]
+                `INSERT INTO quiz_results (id, quiz_id, quiz_judul, kelas, nama, benar, total, skor, tab_switches, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
+                [item.id, item.quiz_id, item.quiz_judul, item.kelas, item.nama, item.benar, item.total, item.skor, item.tab_switches, item.created_at]
             );
             return { ok: true, synced: true, item };
         } catch (e) {
@@ -150,7 +153,7 @@ const NilaiDB = {
         try {
             await this.ensureTable();
             const rows = await NeonDB.query(
-                `SELECT id, quiz_id, quiz_judul, kelas, nama, benar, total, skor, created_at
+                `SELECT id, quiz_id, quiz_judul, kelas, nama, benar, total, skor, COALESCE(tab_switches, 0) AS tab_switches, created_at
                  FROM quiz_results ORDER BY created_at DESC LIMIT 1000;`
             );
             const normalized = (rows || []).map(r => ({
@@ -158,6 +161,7 @@ const NilaiDB = {
                 benar: Number(r.benar) || 0,
                 total: Number(r.total) || 0,
                 skor: Number(r.skor) || 0,
+                tab_switches: Number(r.tab_switches) || 0,
                 created_at: Number(r.created_at) || 0
             }));
             this.saveLocal(normalized);

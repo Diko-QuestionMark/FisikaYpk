@@ -6,6 +6,15 @@ let showQuizSettings = false;
 let activeSoalIdx = 0;
 let previewQuizState = null;
 
+function copyQuizLink(id) {
+  const url = new URL(`index.html#quiz/${id}`, location.href).href;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => toast("Link kuis disalin")).catch(() => prompt("Salin link kuis:", url));
+  } else {
+    prompt("Salin link kuis:", url);
+  }
+}
+
 function getExternalQuizVisual(link) {
     const u = String(link || "").toLowerCase();
     if (u.includes("docs.google.com/forms") || u.includes("forms.gle")) {
@@ -65,7 +74,14 @@ function pQuiz() {
           ? `<img src="${esc(String(linkedMateri.gambar).trim())}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`
           : iconVis.svg;
         const isPub = x.published !== false;
-        const tipeText = x.tipe === "native" ? `${TIPE.native} · ${x.soal.length} soal` : extVis.label;
+        const tipeText = x.tipe === "native" ? `${x.soal.length} soal` : extVis.label;
+        const iconLinkSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+        const metaParts = [
+          esc(topikLabel),
+          normalizeKelasLevel(x.kelas) !== "semua" ? esc(formatKelasLevelLabel(x.kelas)) : "",
+          esc(tipeText),
+          x.examMode ? (x.linkOnly ? "Ujian (Link)" : "Ujian") : (x.linkOnly ? "Via Link" : ""),
+        ].filter(Boolean).join(" · ");
         return `
       <div class="crud-card" style="${isPub ? "" : "opacity:0.82"}">
         <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
@@ -74,14 +90,12 @@ function pQuiz() {
             <h3 class="crud-card-title">${esc(x.judul || "Tanpa Judul")}</h3>
             <div class="crud-card-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:12.5px">
               <button type="button" onclick="toggleQuizPublish('${x.id}')" title="Klik untuk ubah status tampil" style="border:1px solid ${isPub ? "#bbf7d0" : "#fde68a"};cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font:inherit;font-size:11.5px;font-weight:700;background:${isPub ? "#f0fdf4" : "#fffbeb"};color:${isPub ? "#15803d" : "#b45309"}">${isPub ? "● Tampil" : "○ Disembunyikan"}</button>
-              <span style="color:var(--text-muted);font-weight:600">· ${esc(topikLabel)}</span>
-              ${normalizeKelasLevel(x.kelas) !== "semua" ? `<span style="color:var(--text-muted)">· ${esc(formatKelasLevelLabel(x.kelas))}</span>` : ""}
-              <span style="color:var(--text-muted)">· ${esc(tipeText)}</span>
+              <span style="color:var(--text-muted)">· ${metaParts}</span>
             </div>
           </div>
         </div>
         <div class="crud-actions">
-          <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
+          ${x.tipe === "native" && x.linkOnly ? `<button type="button" class="crud-btn-icon" onclick="copyQuizLink('${x.id}')" title="Salin link kuis">${iconLinkSvg}</button>` : ""}          <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
           <button class="crud-btn-icon del" onclick="del('quiz','${x.id}')" title="Hapus">${ICON_TRASH}</button>
         </div>
       </div>`;
@@ -273,6 +287,7 @@ function pQuiz() {
           </div>
           <button type="button" class="qe-btn-save" style="width:100%;text-align:center" onclick="sQ()">Simpan kuis</button>
           <button type="button" class="qe-btn-outline" style="width:100%;text-align:center" onclick="pratinjauKuis()">Pratinjau</button>
+          ${Q.id && Q.tipe === "native" ? `<button type="button" class="qe-btn-outline" style="width:100%;text-align:center" onclick="copyQuizLink('${Q.id}')">Salin link</button>` : ""}
           <button type="button" class="btn ghost" style="width:100%;text-align:center" onclick="batalEditKuis()">Batal</button>
         </div>
       </div>
@@ -282,6 +297,18 @@ function pQuiz() {
   ${renderQuizSettingsModal()}
   ${renderQuizPreviewModal()}
   `;
+}
+
+function onToggleExamMode(checked) {
+  if (!Q) return;
+  Q.examMode = !!checked;
+  const info = document.getElementById("exam_mode_info");
+  if (info) info.style.display = Q.examMode ? "block" : "none";
+  if (Q.examMode) {
+    Q.linkOnly = true;
+    const lo = document.getElementById("set_link_only");
+    if (lo) lo.checked = true;
+  }
 }
 
 function renderQuizSettingsModal() {
@@ -361,6 +388,38 @@ function renderQuizSettingsModal() {
             <span class="qe-toggle-label">Tampilkan hasil</span>
             <label class="qe-switch">
               <input type="checkbox" id="set_tampilkan_hasil" ${(Q.tampilkanHasil ?? true) ? "checked" : ""}>
+              <span class="qe-slider"></span>
+            </label>
+          </div>
+
+          <div class="qe-toggle-row">
+            <div>
+              <div class="qe-toggle-label">Mode Ujian</div>
+              <div style="font-size:11.5px;color:var(--text-muted)">Aktifkan aturan khusus untuk ulangan/ujian</div>
+            </div>
+            <label class="qe-switch">
+              <input type="checkbox" id="set_exam_mode" ${Q.examMode ? "checked" : ""} onchange="onToggleExamMode(this.checked)">
+              <span class="qe-slider"></span>
+            </label>
+          </div>
+
+          <div id="exam_mode_info" style="display:${Q.examMode ? "block" : "none"};margin:-2px 0 12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid var(--border);font-size:12px;line-height:1.55;color:var(--text-muted)">
+            <div style="font-weight:700;color:var(--text);margin-bottom:4px">Yang aktif saat Mode Ujian menyala:</div>
+            <ul style="margin:0;padding-left:16px">
+              <li>Kunci jawaban &amp; pembahasan ditahan sampai seluruh soal dikumpulkan.</li>
+              <li>Teks soal dikunci agar tidak bisa disalin siswa.</li>
+              <li>Aktivitas keluar/pindah tab otomatis tercatat di menu <b>Nilai</b>.</li>
+              <li>Siswa bisa mengecek &amp; mengganti jawaban sebelum dikumpulkan.</li>
+            </ul>
+          </div>
+
+          <div class="qe-toggle-row">
+            <div>
+              <div class="qe-toggle-label">Hanya akses via link</div>
+              <div style="font-size:11.5px;color:var(--text-muted)">Sembunyikan dari beranda &amp; daftar kuis siswa</div>
+            </div>
+            <label class="qe-switch">
+              <input type="checkbox" id="set_link_only" ${Q.linkOnly ? "checked" : ""}>
               <span class="qe-slider"></span>
             </label>
           </div>
@@ -717,6 +776,8 @@ function sync() {
   if ($("#set_acak_soal")) Q.acakSoal = $("#set_acak_soal").checked;
   if ($("#set_acak_opsi")) Q.acakOpsi = $("#set_acak_opsi").checked;
   if ($("#set_tampilkan_hasil")) Q.tampilkanHasil = $("#set_tampilkan_hasil").checked;
+  if ($("#set_exam_mode")) Q.examMode = $("#set_exam_mode").checked;
+  if ($("#set_link_only")) Q.linkOnly = $("#set_link_only").checked;
 
   document.querySelectorAll("[data-n]").forEach((e) => {
     const s = Q.soal[+e.dataset.n];
@@ -1052,7 +1113,10 @@ function pNilai() {
       return `
         <tr data-search="${searchStr}" style="${hiddenStyle}">
           <td style="${tdStyle};color:var(--text-muted);font-weight:600;width:44px">${idx + 1}</td>
-          <td style="${tdStyle};font-weight:700;color:var(--text)">${esc(r.nama)}</td>
+          <td style="${tdStyle};font-weight:700;color:var(--text)">
+            <div>${esc(r.nama)}</div>
+            ${Number(r.tab_switches) > 0 ? `<div style="margin-top:2px;font-size:11.5px;font-weight:700;color:#b45309">⚠ ${Number(r.tab_switches)}× pindah tab</div>` : ""}
+          </td>
           <td style="${tdStyle};color:var(--text-muted);white-space:nowrap">${esc(klsLabel)}</td>
           <td style="${tdStyle};text-align:center;color:var(--text-muted);white-space:nowrap">${r.benar}/${r.total}</td>
           <td style="${tdStyle};text-align:center">
@@ -1221,4 +1285,4 @@ function expExcelNilai() {
   a.download = `Rekap_Nilai_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.xls`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
+} 
