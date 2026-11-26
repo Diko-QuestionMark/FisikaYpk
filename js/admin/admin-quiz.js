@@ -5,9 +5,14 @@ let filterKelasQuiz = "semua";
 let showQuizSettings = false;
 let activeSoalIdx = 0;
 let previewQuizState = null;
+let shareQuizId = null;
+
+function getQuizShareUrl(id) {
+  return new URL(`index.html#quiz/${id}`, location.href).href;
+}
 
 function copyQuizLink(id) {
-  const url = new URL(`index.html#quiz/${id}`, location.href).href;
+  const url = getQuizShareUrl(id);
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(() => toast("Link kuis disalin")).catch(() => prompt("Salin link kuis:", url));
   } else {
@@ -54,6 +59,7 @@ function pQuiz() {
     Q = null;
     showQuizSettings = false;
     previewQuizState = null;
+    shareQuizId = null;
     activeSoalIdx = 0;
     const allList = [...(D.quiz || [])].reverse();
     const list = allList.filter(
@@ -75,7 +81,6 @@ function pQuiz() {
           : iconVis.svg;
         const isPub = x.published !== false;
         const tipeText = x.tipe === "native" ? `${x.soal.length} soal` : extVis.label;
-        const iconLinkSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
         const metaParts = [
           esc(topikLabel),
           normalizeKelasLevel(x.kelas) !== "semua" ? esc(formatKelasLevelLabel(x.kelas)) : "",
@@ -83,7 +88,7 @@ function pQuiz() {
           x.examMode ? (x.linkOnly ? "Ujian (Link)" : "Ujian") : (x.linkOnly ? "Via Link" : ""),
         ].filter(Boolean).join(" · ");
         return `
-      <div class="crud-card" style="${isPub ? "" : "opacity:0.82"}">
+      <div class="crud-card${x.examMode ? " is-exam" : ""}" style="${isPub ? "" : "opacity:0.82"}">
         <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
           <div style="width:44px;height:44px;border-radius:12px;background:${iconVis.bg};color:${iconVis.color};display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0" title="${esc(extVis ? extVis.label : topikLabel)}">${thumbHtml}</div>
           <div class="crud-card-left">
@@ -95,7 +100,7 @@ function pQuiz() {
           </div>
         </div>
         <div class="crud-actions">
-          ${x.tipe === "native" && x.linkOnly ? `<button type="button" class="crud-btn-icon" onclick="copyQuizLink('${x.id}')" title="Salin link kuis">${iconLinkSvg}</button>` : ""}          <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
+          <button class="crud-btn-icon" onclick="edit='${x.id}';draw()" title="Ubah">${ICON_EDIT}</button>
           <button class="crud-btn-icon del" onclick="del('quiz','${x.id}')" title="Hapus">${ICON_TRASH}</button>
         </div>
       </div>`;
@@ -287,7 +292,7 @@ function pQuiz() {
           </div>
           <button type="button" class="qe-btn-save" style="width:100%;text-align:center" onclick="sQ()">Simpan kuis</button>
           <button type="button" class="qe-btn-outline" style="width:100%;text-align:center" onclick="pratinjauKuis()">Pratinjau</button>
-          ${Q.id && Q.tipe === "native" ? `<button type="button" class="qe-btn-outline" style="width:100%;text-align:center" onclick="copyQuizLink('${Q.id}')">Salin link</button>` : ""}
+          ${Q.id && Q.tipe === "native" ? `<button type="button" class="qe-btn-outline" style="width:100%;text-align:center" onclick="bukaModalBagikanKuis('${Q.id}')">Bagikan</button>` : ""}
           <button type="button" class="btn ghost" style="width:100%;text-align:center" onclick="batalEditKuis()">Batal</button>
         </div>
       </div>
@@ -296,6 +301,7 @@ function pQuiz() {
 
   ${renderQuizSettingsModal()}
   ${renderQuizPreviewModal()}
+  ${renderQuizShareModal()}
   `;
 }
 
@@ -353,65 +359,63 @@ function renderQuizSettingsModal() {
                   <label style="margin-top:0">Link kuis</label>
                   <input id="set_link" value="${esc(Q.link)}" placeholder="https://">
                 </div>`
-              : ""
+              : `<div style="margin-bottom:16px">
+                  <label style="margin-top:0">Durasi pengerjaan</label>
+                  <select id="set_durasi">
+                    ${durasiOptions
+                      .map(
+                        (d) =>
+                          `<option value="${d.v}" ${(Q.durasi ?? 20) === d.v ? "selected" : ""}>${d.l}</option>`,
+                      )
+                      .join("")}
+                  </select>
+                </div>
+
+                <div class="qe-toggle-row">
+                  <span class="qe-toggle-label">Acak soal</span>
+                  <label class="qe-switch">
+                    <input type="checkbox" id="set_acak_soal" ${Q.acakSoal ? "checked" : ""}>
+                    <span class="qe-slider"></span>
+                  </label>
+                </div>
+
+                <div class="qe-toggle-row">
+                  <span class="qe-toggle-label">Acak pilihan jawaban</span>
+                  <label class="qe-switch">
+                    <input type="checkbox" id="set_acak_opsi" ${Q.acakOpsi ? "checked" : ""}>
+                    <span class="qe-slider"></span>
+                  </label>
+                </div>
+
+                <div class="qe-toggle-row">
+                  <span class="qe-toggle-label">Tampilkan hasil</span>
+                  <label class="qe-switch">
+                    <input type="checkbox" id="set_tampilkan_hasil" ${(Q.tampilkanHasil ?? true) ? "checked" : ""}>
+                    <span class="qe-slider"></span>
+                  </label>
+                </div>
+
+                <div class="qe-toggle-row">
+                  <div>
+                    <div class="qe-toggle-label">Mode Ujian</div>
+                    <div style="font-size:11.5px;color:var(--text-muted)">Aktifkan aturan khusus untuk ulangan/ujian</div>
+                  </div>
+                  <label class="qe-switch">
+                    <input type="checkbox" id="set_exam_mode" ${Q.examMode ? "checked" : ""} onchange="onToggleExamMode(this.checked)">
+                    <span class="qe-slider"></span>
+                  </label>
+                </div>
+
+                <div id="exam_mode_info" style="display:${Q.examMode ? "block" : "none"};margin:-2px 0 12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid var(--border);font-size:12px;line-height:1.55;color:var(--text-muted)">
+                  <div style="font-weight:700;color:var(--text);margin-bottom:4px">Yang aktif saat Mode Ujian menyala:</div>
+                  <ul style="margin:0;padding-left:16px">
+                    <li>Kunci jawaban &amp; pembahasan ditahan sampai seluruh soal dikumpulkan.</li>
+                    <li>Teks soal dikunci agar tidak bisa disalin siswa.</li>
+                    <li>Aktivitas keluar/pindah tab otomatis tercatat di menu <b>Nilai</b>.</li>
+                    <li>Siswa bisa mengecek &amp; mengganti jawaban sebelum dikumpulkan.</li>
+                  </ul>
+                </div>`
           }
-
-          <div style="margin-bottom:16px">
-            <label style="margin-top:0">Durasi pengerjaan</label>
-            <select id="set_durasi">
-              ${durasiOptions
-                .map(
-                  (d) =>
-                    `<option value="${d.v}" ${(Q.durasi ?? 20) === d.v ? "selected" : ""}>${d.l}</option>`,
-                )
-                .join("")}
-            </select>
-          </div>
-
-          <div class="qe-toggle-row">
-            <span class="qe-toggle-label">Acak soal</span>
-            <label class="qe-switch">
-              <input type="checkbox" id="set_acak_soal" ${Q.acakSoal ? "checked" : ""}>
-              <span class="qe-slider"></span>
-            </label>
-          </div>
-
-          <div class="qe-toggle-row">
-            <span class="qe-toggle-label">Acak pilihan jawaban</span>
-            <label class="qe-switch">
-              <input type="checkbox" id="set_acak_opsi" ${Q.acakOpsi ? "checked" : ""}>
-              <span class="qe-slider"></span>
-            </label>
-          </div>
-
-          <div class="qe-toggle-row">
-            <span class="qe-toggle-label">Tampilkan hasil</span>
-            <label class="qe-switch">
-              <input type="checkbox" id="set_tampilkan_hasil" ${(Q.tampilkanHasil ?? true) ? "checked" : ""}>
-              <span class="qe-slider"></span>
-            </label>
-          </div>
-
-          <div class="qe-toggle-row">
-            <div>
-              <div class="qe-toggle-label">Mode Ujian</div>
-              <div style="font-size:11.5px;color:var(--text-muted)">Aktifkan aturan khusus untuk ulangan/ujian</div>
-            </div>
-            <label class="qe-switch">
-              <input type="checkbox" id="set_exam_mode" ${Q.examMode ? "checked" : ""} onchange="onToggleExamMode(this.checked)">
-              <span class="qe-slider"></span>
-            </label>
-          </div>
-
-          <div id="exam_mode_info" style="display:${Q.examMode ? "block" : "none"};margin:-2px 0 12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid var(--border);font-size:12px;line-height:1.55;color:var(--text-muted)">
-            <div style="font-weight:700;color:var(--text);margin-bottom:4px">Yang aktif saat Mode Ujian menyala:</div>
-            <ul style="margin:0;padding-left:16px">
-              <li>Kunci jawaban &amp; pembahasan ditahan sampai seluruh soal dikumpulkan.</li>
-              <li>Teks soal dikunci agar tidak bisa disalin siswa.</li>
-              <li>Aktivitas keluar/pindah tab otomatis tercatat di menu <b>Nilai</b>.</li>
-              <li>Siswa bisa mengecek &amp; mengganti jawaban sebelum dikumpulkan.</li>
-            </ul>
-          </div>
 
           <div class="qe-toggle-row">
             <div>
@@ -755,6 +759,104 @@ function renderQuizPreviewModal() {
   `;
 }
 
+
+/* ===================================================
+   MODAL BAGIKAN KUIS (QR CODE & SALIN LINK)
+=================================================== */
+function bukaModalBagikanKuis(id) {
+  if (!id) return;
+  sync();
+  shareQuizId = id;
+  draw();
+  setTimeout(() => renderShareQRCode(getQuizShareUrl(id)), 20);
+}
+
+function tutupModalBagikanKuis() {
+  shareQuizId = null;
+  const el = document.getElementById("qe_share_modal");
+  if (el) el.remove();
+}
+
+function renderShareQRCode(url) {
+  const box = document.getElementById("qe_share_qr");
+  if (!box) return;
+  box.innerHTML = "";
+  if (typeof QRCode === "undefined") {
+    box.innerHTML = `<div style="padding:20px;font-size:13px;color:var(--text-muted);text-align:center">QR Code gagal dimuat.<br>Silakan salin link di bawah.</div>`;
+    return;
+  }
+  new QRCode(box, {
+    text: url,
+    width: 210,
+    height: 210,
+    colorDark: "#0f172a",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+}
+
+function downloadQuizQR() {
+  const box = document.getElementById("qe_share_qr");
+  if (!box) return;
+  const srcCanvas = box.querySelector("canvas");
+  const srcImg = box.querySelector("img");
+  const source = srcCanvas || srcImg;
+  if (!source) return toast("QR Code belum siap");
+
+  const size = 210;
+  const pad = 20;
+  const out = document.createElement("canvas");
+  out.width = size + pad * 2;
+  out.height = size + pad * 2;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.drawImage(source, pad, pad, size, size);
+
+  const a = document.createElement("a");
+  const slug = String((Q && Q.judul) || "kuis")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40) || "kuis";
+  a.download = `qr-${slug}.png`;
+  a.href = out.toDataURL("image/png");
+  a.click();
+  toast("QR Code diunduh");
+}
+
+function renderQuizShareModal() {
+  if (!shareQuizId || !Q) return "";
+  const url = getQuizShareUrl(shareQuizId);
+  const safeId = esc(shareQuizId).replace(/'/g, "\'");
+  return `
+    <div id="qe_share_modal" class="qe-modal-backdrop" onclick="if(event.target === this) tutupModalBagikanKuis()">
+      <div class="qe-modal-box" style="max-width:440px">
+        <div class="qe-modal-header">
+          <h3 class="qe-modal-title">Bagikan Kuis</h3>
+          <button type="button" class="qe-modal-close" onclick="tutupModalBagikanKuis()" title="Tutup">✕</button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">${esc(Q.judul || "Kuis Tanpa Judul")}</div>
+          <div style="display:inline-flex;padding:16px;background:#ffffff;border:1.5px solid var(--border);border-radius:16px;box-shadow:var(--shadow-card);margin-bottom:12px">
+            <div id="qe_share_qr" style="width:210px;height:210px;display:flex;align-items:center;justify-content:center"></div>
+          </div>
+          <div style="margin-bottom:18px">
+            <button type="button" class="btn sm ghost" onclick="downloadQuizQR()">📥 Unduh QR (.png)</button>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px">
+          <label style="margin:0 0 6px;font-size:13px;color:var(--text-muted)">Atau bagikan lewat link:</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="qe_share_url" value="${esc(url)}" readonly onclick="this.select()" style="flex:1;font-size:13px;padding:9px 11px;background:var(--bg)">
+            <button type="button" class="btn sm" style="white-space:nowrap;padding:9px 14px" onclick="copyQuizLink('${safeId}')">Salin Link</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function setKunciJawaban(soalIdx, kunciIdx) {
   sync();
   if (Q.soal[soalIdx]) {
@@ -846,7 +948,7 @@ function sQ(publishState) {
   o.tampilkanHasil = Q.tampilkanHasil !== undefined ? Q.tampilkanHasil : true;
   o.createdAt = Q.createdAt || existing?.createdAt || now;
   o.updatedAt = now;
-  if (o.tipe !== "native") o.soal = [];
+  if (o.tipe !== "native") { o.soal = []; o.examMode = false; }
 
   up(D.quiz, o);
   Q = null;
@@ -1285,4 +1387,4 @@ function expExcelNilai() {
   a.download = `Rekap_Nilai_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.xls`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-} 
+}
